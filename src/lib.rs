@@ -46,18 +46,18 @@ mod tests {
     }
 
     impl SharedPtrTarget for i64 {
-        unsafe fn __clone(this: *const c_void, out: *mut c_void) {
-            extern "C" {
-                fn test_clone_shared_ptr(this: *const c_void, out: *mut c_void);
-            }
-            test_clone_shared_ptr(this, out);
-        }
-
         unsafe fn __drop(this: *mut c_void) {
             extern "C" {
                 fn test_delete_shared_ptr(this: *mut c_void);
             }
             test_delete_shared_ptr(this);
+        }
+
+        unsafe fn __clone(this: *const c_void, out: *mut c_void) {
+            extern "C" {
+                fn test_clone_shared_ptr(this: *const c_void, out: *mut c_void);
+            }
+            test_clone_shared_ptr(this, out);
         }
     }
 
@@ -161,6 +161,19 @@ mod tests {
         }
     }
 
+    fn test_new_shared_ptr_string() -> SharedPtr<CxxString> {
+        extern "C" {
+            fn test_new_shared_ptr_string(
+                out: *mut SharedPtr<CxxString>
+            );
+        }
+        let mut out = MaybeUninit::<SharedPtr<CxxString>>::uninit();
+        unsafe {
+            test_new_shared_ptr_string(out.as_mut_ptr());
+            out.assume_init()
+        }
+    }
+
     #[test]
     fn test_unique_ptr() {
         let v = 64;
@@ -242,6 +255,13 @@ mod tests {
     #[test]
     fn test_unique_string() {
         let s = test_new_unique_ptr_string();
-        println!("{:?}", s);
+        assert_eq!(s.to_str(), "test");
     }
+
+    #[test]
+    fn test_shared_string() {
+        let s = test_new_shared_ptr_string();
+        assert_eq!(s.to_str(), "test");
+    }
+
 }

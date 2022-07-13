@@ -9,6 +9,7 @@ fn main() -> Result<()> {
     let prefix = PathBuf::from(env::var("CONDA_PREFIX")?);
     let out_dir = PathBuf::from(env::var("OUT_DIR")?);
 
+    fs::create_dir_all("src/gen")?;
     Command::new("j2rxx.py").args(&["-o", "src/gen/ffi.cc", "-g", "genrxx/genrxx.py", "genrxx/ffi.cc"])
         .status()?;
     Command::new("j2rxx.py").args(&["-o", "src/gen/ffi.rs", "-g", "genrxx/genrxx.py", "genrxx/ffi.rs"])

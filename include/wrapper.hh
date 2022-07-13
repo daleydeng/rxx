@@ -14,7 +14,7 @@ void destroy(T *ptr) {
 template<typename T>
 void shared_ptr_clone(const std::shared_ptr<T> &self, std::shared_ptr<T> *out)
 {
-  new (out) std::shared_ptr<int64_t>(self);
+  new (out) std::shared_ptr<T>(self);
 }
 
 template<typename T>
@@ -32,7 +32,7 @@ void weak_ptr_downgrade(const std::shared_ptr<T> &self, std::weak_ptr<T> *out)
 template<typename T>
 void weak_ptr_clone(const std::weak_ptr<T> &self, std::weak_ptr<T> *out)
 {
-  new (out) std::weak_ptr<int64_t>(self);
+  new (out) std::weak_ptr<T>(self);
 }
 
 template<typename T>
@@ -59,7 +59,7 @@ void vector_push_back(std::vector<T> &self, T &value) {
 
 template<typename T>
 void vector_pop_back(std::vector<T> &self, T *out) {
-  new (out) int64_t(std::move(self.back()));
+  new (out) T(std::move(self.back()));
   self.pop_back();
 }
 
