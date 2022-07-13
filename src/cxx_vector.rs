@@ -13,9 +13,11 @@ pub trait VectorElement: Sized {
     unsafe fn __pop_back(this: &mut CxxVector<Self>, value: *mut Self);
 }
 
+const VECTOR_SIZE: usize = 24;
+
 #[repr(C)]
 pub struct CxxVector<T: VectorElement> {
-    _space: [u8; 24],
+    _space: [u8; VECTOR_SIZE],
     _pd: PhantomData<T>
 }
 

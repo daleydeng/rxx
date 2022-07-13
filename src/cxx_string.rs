@@ -1,4 +1,4 @@
-use core::str::{self, Utf8Error};
+use core::str;
 use core::marker::{PhantomData, PhantomPinned};
 use core::pin::Pin;
 use core::fmt::{self, Debug};
@@ -37,8 +37,8 @@ impl CxxString {
         unsafe { rxx_string_data(self) }
     }
 
-    pub fn to_str(&self) -> Result<&str, Utf8Error> {
-        str::from_utf8(self.as_bytes())
+    pub fn to_str(&self) -> &str {
+        str::from_utf8(self.as_bytes()).unwrap()
     }
 
     #[cfg(feature = "alloc")]
@@ -89,10 +89,7 @@ impl Deref for CxxString
 }
 
 
-#[cfg(target_family = "unix")]
-const STRING_SIZE: usize = 32;
-#[cfg(target_family = "windows")]
-const STRING_SIZE: usize = 40;
+const STRING_SIZE: usize = 32; // gcc version > 5 or STRING_SIZE = 8
 
 #[repr(C)]
 #[derive(Default, Debug)]
@@ -106,10 +103,12 @@ impl StackString {
         extern "C" {
             fn rxx_string_init(ptr: *const u8, len: usize, out: &mut StackString);
         }
-        unsafe {
-            rxx_string_init(val.as_ptr(), val.len(), self);
-            Pin::new_unchecked(&mut *(self as *mut Self as *mut CxxString))
-        }
+        unsafe {rxx_string_init(val.as_ptr(), val.len(), self);}
+        self.pin_str()
+    }
+
+    pub fn pin_str(&mut self) -> Pin<&mut CxxString> {
+        unsafe {Pin::new_unchecked(&mut *(self as *mut Self as *mut CxxString))}
     }
 }
 

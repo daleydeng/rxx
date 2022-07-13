@@ -15,6 +15,9 @@ pub use cxx_string::*;
 pub mod cxx_vector;
 pub use cxx_vector::*;
 
+mod gen {pub mod ffi;}
+pub use gen::ffi;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -145,6 +148,19 @@ mod tests {
         }
     }
 
+    fn test_new_unique_ptr_string() -> UniquePtr<CxxString> {
+        extern "C" {
+            fn test_new_unique_ptr_string(
+                out: *mut UniquePtr<CxxString>
+            );
+        }
+        let mut out = MaybeUninit::<UniquePtr<CxxString>>::uninit();
+        unsafe {
+            test_new_unique_ptr_string(out.as_mut_ptr());
+            out.assume_init()
+        }
+    }
+
     #[test]
     fn test_unique_ptr() {
         let v = 64;
@@ -189,7 +205,7 @@ mod tests {
         let s = s.init(a);
 
         assert_eq!(s.len(), len);
-        assert_eq!(s.to_str().unwrap(), a);
+        assert_eq!(s.to_str(), a);
 
         let c = &*s; // since we cannnot move CxxString, we can reborrow it
         assert_eq!(c.len(), len);
@@ -199,7 +215,7 @@ mod tests {
 
         d.as_mut().reserve(10);
         d.as_mut().push_str("abc");
-        assert_eq!(d.to_str().unwrap(), "helloabc");
+        assert_eq!(d.to_str(), "helloabc");
 
         d.as_mut().clear();
         assert_eq!(d.len(), 0);
@@ -221,5 +237,11 @@ mod tests {
 
         let c = b.pop().unwrap();
         assert_eq!(c, 3);
+    }
+
+    #[test]
+    fn test_unique_string() {
+        let s = test_new_unique_ptr_string();
+        println!("{:?}", s);
     }
 }
