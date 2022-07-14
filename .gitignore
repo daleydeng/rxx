@@ -2,5 +2,6 @@
 /Cargo.lock
 src/gen/
 __pycache__/
+tmp/
 .*
 !.gitignore

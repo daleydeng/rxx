@@ -16,6 +16,9 @@ pub use cxx_string::*;
 pub mod cxx_vector;
 pub use cxx_vector::*;
 
+#[path="../genrxx/ffi.rs"]
+mod _ffi;
+
 mod gen {
     pub mod ffi;
 }

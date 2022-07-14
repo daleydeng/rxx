@@ -108,12 +108,9 @@ extern "C" {
     new (out) std::shared_ptr<std::string>(new std::string("test"));
   }
 
-{% for k, o in cffi_unique_ptrs.items() -%}
-{{ cffi_genc_unique_ptr(k, **o) }}
-{% endfor %}
-
-{% for k, o in cffi_shared_ptrs.items() -%}
-{{ cffi_genc_shared_ptr(k, **o) }}
-{% endfor %}
-
+/*[[[cog
+ from genrxx import *
+ cog.outl(cog_genc())
+]]]*/
+//[[[end]]]
 }

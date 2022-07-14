@@ -5,26 +5,32 @@ use std::process::Command;
 use std::{env, fs};
 
 fn main() -> Result<()> {
+    for i in [
+        "include/wrapper.hh",
+        "genrxx/ffi.cc",
+        "genrxx/ffi.rs",
+        "genrxx/genrxx.py",
+	"src/gen",
+    ] {
+        println!("cargo:rerun-if-changed={}", i);
+    }
+
     let pkg_name = env::var("CARGO_PKG_NAME")?;
     let prefix = PathBuf::from(env::var("CONDA_PREFIX")?);
     let out_dir = PathBuf::from(env::var("OUT_DIR")?);
 
     fs::create_dir_all("src/gen")?;
-    Command::new("j2rxx.py")
+    Command::new("cog")
         .args(&[
             "-o",
             "src/gen/ffi.cc",
-            "-g",
-            "genrxx/genrxx.py",
             "genrxx/ffi.cc",
         ])
         .status()?;
-    Command::new("j2rxx.py")
+    Command::new("cog")
         .args(&[
             "-o",
             "src/gen/ffi.rs",
-            "-g",
-            "genrxx/genrxx.py",
             "genrxx/ffi.rs",
         ])
         .status()?;
@@ -37,15 +43,6 @@ fn main() -> Result<()> {
         .flag_if_supported("-std=c++14")
         .includes(&inc_dirs)
         .compile("rxx");
-
-    for i in [
-        "include/wrapper.hh",
-        "genrxx/ffi.cc",
-        "genrxx/ffi.rs",
-        "genrxx/genrxx.py",
-    ] {
-        println!("cargo:rerun-if-changed={}", i);
-    }
 
     // generate output files for downstream
     let dir = out_dir.join("include").join(&pkg_name);
