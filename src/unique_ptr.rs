@@ -1,9 +1,9 @@
+use core::ffi::c_void;
 use core::fmt::{self, Debug, Display};
 use core::marker::PhantomData;
 use core::mem;
-use core::ffi::c_void;
-use core::pin::Pin;
 use core::ops::{Deref, DerefMut};
+use core::pin::Pin;
 
 pub trait UniquePtrTarget {
     unsafe fn __drop(this: *mut c_void);
@@ -11,14 +11,12 @@ pub trait UniquePtrTarget {
 
 /// Binding to C++ `std::unique_ptr<T, std::default_delete<T>>`.
 #[repr(C)]
-pub struct UniquePtr<T: UniquePtrTarget>
-{
+pub struct UniquePtr<T: UniquePtrTarget> {
     ptr: *mut c_void,
     pd: PhantomData<T>,
 }
 
-impl<T: UniquePtrTarget> UniquePtr<T>
-{
+impl<T: UniquePtrTarget> UniquePtr<T> {
     pub fn get_ptr(&self) -> *const T {
         self.ptr as *const T
     }
@@ -39,7 +37,9 @@ impl<T: UniquePtrTarget> UniquePtr<T>
     }
 
     pub fn as_mut(&mut self) -> Option<&mut T>
-    where T: Unpin {
+    where
+        T: Unpin,
+    {
         unsafe { (self.ptr as *mut T).as_mut() }
     }
 
@@ -79,12 +79,13 @@ unsafe impl<T> Sync for UniquePtr<T> where T: Sync + UniquePtrTarget {}
 
 impl<T: UniquePtrTarget> Drop for UniquePtr<T> {
     fn drop(&mut self) {
-        unsafe { T::__drop(self as *mut Self as *mut c_void); }
+        unsafe {
+            T::__drop(self as *mut Self as *mut c_void);
+        }
     }
 }
 
-impl<T: UniquePtrTarget> Deref for UniquePtr<T>
-{
+impl<T: UniquePtrTarget> Deref for UniquePtr<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -98,8 +99,7 @@ impl<T: UniquePtrTarget> Deref for UniquePtr<T>
     }
 }
 
-impl<T: UniquePtrTarget + Unpin> DerefMut for UniquePtr<T>
-{
+impl<T: UniquePtrTarget + Unpin> DerefMut for UniquePtr<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self.as_mut() {
             Some(target) => target,
@@ -111,8 +111,7 @@ impl<T: UniquePtrTarget + Unpin> DerefMut for UniquePtr<T>
     }
 }
 
-impl<T: Debug + UniquePtrTarget> Debug for UniquePtr<T>
-{
+impl<T: Debug + UniquePtrTarget> Debug for UniquePtr<T> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match self.as_ref() {
             None => formatter.write_str("nullptr"),
@@ -121,8 +120,7 @@ impl<T: Debug + UniquePtrTarget> Debug for UniquePtr<T>
     }
 }
 
-impl<T: Display + UniquePtrTarget> Display for UniquePtr<T>
-{
+impl<T: Display + UniquePtrTarget> Display for UniquePtr<T> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match self.as_ref() {
             None => formatter.write_str("nullptr"),

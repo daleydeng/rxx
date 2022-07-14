@@ -1,8 +1,8 @@
 // use std::process::abort;
+use anyhow::Result;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
-use std::path::{Path, PathBuf};
-use anyhow::Result;
 
 fn main() -> Result<()> {
     let pkg_name = env::var("CARGO_PKG_NAME")?;
@@ -10,15 +10,27 @@ fn main() -> Result<()> {
     let out_dir = PathBuf::from(env::var("OUT_DIR")?);
 
     fs::create_dir_all("src/gen")?;
-    Command::new("j2rxx.py").args(&["-o", "src/gen/ffi.cc", "-g", "genrxx/genrxx.py", "genrxx/ffi.cc"])
+    Command::new("j2rxx.py")
+        .args(&[
+            "-o",
+            "src/gen/ffi.cc",
+            "-g",
+            "genrxx/genrxx.py",
+            "genrxx/ffi.cc",
+        ])
         .status()?;
-    Command::new("j2rxx.py").args(&["-o", "src/gen/ffi.rs", "-g", "genrxx/genrxx.py", "genrxx/ffi.rs"])
+    Command::new("j2rxx.py")
+        .args(&[
+            "-o",
+            "src/gen/ffi.rs",
+            "-g",
+            "genrxx/genrxx.py",
+            "genrxx/ffi.rs",
+        ])
         .status()?;
 
-    let inc_dirs = vec![
-        Path::new("include").to_path_buf(),
-        prefix.join("include"),
-    ];
+    let inc_dirs = vec![Path::new("include").to_path_buf(), prefix.join("include")];
+
     cc::Build::new()
         .file("src/gen/ffi.cc")
         .cpp(true)
@@ -30,7 +42,7 @@ fn main() -> Result<()> {
         "include/wrapper.hh",
         "genrxx/ffi.cc",
         "genrxx/ffi.rs",
-        "genrxx/genrxx.py"
+        "genrxx/genrxx.py",
     ] {
         println!("cargo:rerun-if-changed={}", i);
     }

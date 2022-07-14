@@ -1,27 +1,24 @@
+use crate::weak_ptr::{WeakPtr, WeakPtrTarget};
+use core::ffi::c_void;
 use core::fmt::{self, Debug, Display};
 use core::marker::PhantomData;
-use core::ffi::c_void;
+use core::ops::{Deref, DerefMut};
 use core::pin::Pin;
 use std::mem::MaybeUninit;
-use core::ops::{Deref, DerefMut};
-use crate::weak_ptr::{WeakPtrTarget, WeakPtr};
 
-pub trait SharedPtrTarget
-{
+pub trait SharedPtrTarget {
     unsafe fn __drop(this: *mut c_void);
     unsafe fn __clone(this: *const c_void, out: *mut c_void);
 }
 
 #[repr(C)]
-pub struct SharedPtr<T: SharedPtrTarget>
-{
+pub struct SharedPtr<T: SharedPtrTarget> {
     ptr: *mut c_void,
     ctrl: *mut c_void,
     pd: PhantomData<T>,
 }
 
-impl<T: SharedPtrTarget> SharedPtr<T>
-{
+impl<T: SharedPtrTarget> SharedPtr<T> {
     pub fn get_ptr(&self) -> *const T {
         self.ptr as *const T
     }
@@ -43,7 +40,9 @@ impl<T: SharedPtrTarget> SharedPtr<T>
     }
 
     pub fn as_mut(&mut self) -> Option<&mut T>
-    where T: Unpin {
+    where
+        T: Unpin,
+    {
         unsafe { (self.ptr as *mut T).as_mut() }
     }
 
@@ -82,14 +81,13 @@ impl<T: SharedPtrTarget> SharedPtr<T>
 unsafe impl<T> Send for SharedPtr<T> where T: Send + SharedPtrTarget {}
 unsafe impl<T> Sync for SharedPtr<T> where T: Sync + SharedPtrTarget {}
 
-impl<T: SharedPtrTarget> Clone for SharedPtr<T>
-{
+impl<T: SharedPtrTarget> Clone for SharedPtr<T> {
     fn clone(&self) -> Self {
         let mut out = MaybeUninit::<Self>::uninit();
         unsafe {
             T::__clone(
                 self as *const Self as *const c_void,
-                out.as_mut_ptr().cast()
+                out.as_mut_ptr().cast(),
             );
             out.assume_init()
         }
@@ -98,12 +96,13 @@ impl<T: SharedPtrTarget> Clone for SharedPtr<T>
 
 impl<T: SharedPtrTarget> Drop for SharedPtr<T> {
     fn drop(&mut self) {
-        unsafe { T::__drop(self as *mut Self as *mut c_void); }
+        unsafe {
+            T::__drop(self as *mut Self as *mut c_void);
+        }
     }
 }
 
-impl<T: SharedPtrTarget> Deref for SharedPtr<T>
-{
+impl<T: SharedPtrTarget> Deref for SharedPtr<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -117,8 +116,7 @@ impl<T: SharedPtrTarget> Deref for SharedPtr<T>
     }
 }
 
-impl<T: SharedPtrTarget + Unpin> DerefMut for SharedPtr<T>
-{
+impl<T: SharedPtrTarget + Unpin> DerefMut for SharedPtr<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self.as_mut() {
             Some(target) => target,
@@ -130,8 +128,7 @@ impl<T: SharedPtrTarget + Unpin> DerefMut for SharedPtr<T>
     }
 }
 
-impl<T: Debug + SharedPtrTarget> Debug for SharedPtr<T>
-{
+impl<T: Debug + SharedPtrTarget> Debug for SharedPtr<T> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match self.as_ref() {
             None => formatter.write_str("nullptr"),
@@ -140,8 +137,7 @@ impl<T: Debug + SharedPtrTarget> Debug for SharedPtr<T>
     }
 }
 
-impl<T: Display + SharedPtrTarget> Display for SharedPtr<T>
-{
+impl<T: Display + SharedPtrTarget> Display for SharedPtr<T> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match self.as_ref() {
             None => formatter.write_str("nullptr"),

@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
+use core::mem::{ManuallyDrop, MaybeUninit};
 use core::ops::{Deref, DerefMut};
 use core::slice;
-use core::mem::{ManuallyDrop, MaybeUninit};
 // use core::marker::{PhantomData, PhantomPinned};
 
 pub trait VectorElement: Sized {
@@ -18,7 +18,7 @@ const VECTOR_SIZE: usize = 24;
 #[repr(C)]
 pub struct CxxVector<T: VectorElement> {
     _space: [u8; VECTOR_SIZE],
-    _pd: PhantomData<T>
+    _pd: PhantomData<T>,
 }
 
 impl<T: VectorElement> CxxVector<T> {
@@ -36,7 +36,7 @@ impl<T: VectorElement> CxxVector<T> {
 
     pub fn get(&self, pos: usize) -> Option<&T> {
         if pos < self.len() {
-            Some(unsafe {self.get_unchecked(pos)})
+            Some(unsafe { self.get_unchecked(pos) })
         } else {
             None
         }
@@ -44,13 +44,13 @@ impl<T: VectorElement> CxxVector<T> {
 
     pub fn get_mut(&mut self, pos: usize) -> Option<&mut T> {
         if pos < self.len() {
-            Some(unsafe {self.get_unchecked_mut(pos)})
+            Some(unsafe { self.get_unchecked_mut(pos) })
         } else {
             None
         }
     }
 
-     /// Returns a slice to the underlying contiguous array of elements.
+    /// Returns a slice to the underlying contiguous array of elements.
     pub fn as_slice(&self) -> &[T] {
         let len = self.vector_len();
         if len == 0 {
@@ -69,8 +69,7 @@ impl<T: VectorElement> CxxVector<T> {
         }
     }
 
-    pub fn as_mut_slice(&mut self) -> &mut [T]
-    {
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
         let len = self.len();
         if len == 0 {
             &mut []
@@ -90,8 +89,7 @@ impl<T: VectorElement> CxxVector<T> {
         }
     }
 
-    pub fn pop(&mut self) -> Option<T>
-    {
+    pub fn pop(&mut self) -> Option<T> {
         if self.is_empty() {
             None
         } else {
@@ -104,16 +102,14 @@ impl<T: VectorElement> CxxVector<T> {
     }
 }
 
-impl<T: VectorElement> Deref for CxxVector<T>
-{
+impl<T: VectorElement> Deref for CxxVector<T> {
     type Target = [T];
     fn deref(&self) -> &Self::Target {
         self.as_slice()
     }
 }
 
-impl<T: VectorElement> DerefMut for CxxVector<T>
-{
+impl<T: VectorElement> DerefMut for CxxVector<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_slice()
     }

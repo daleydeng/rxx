@@ -1,8 +1,8 @@
-use core::str;
-use core::marker::{PhantomData, PhantomPinned};
-use core::pin::Pin;
 use core::fmt::{self, Debug};
+use core::marker::{PhantomData, PhantomPinned};
 use core::ops::Deref;
+use core::pin::Pin;
+use core::str;
 
 #[cfg(feature = "alloc")]
 use alloc::borrow::Cow;
@@ -79,15 +79,13 @@ impl Debug for CxxString {
     }
 }
 
-impl Deref for CxxString
-{
+impl Deref for CxxString {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
         self.as_bytes()
     }
 }
-
 
 const STRING_SIZE: usize = 32; // gcc version > 5 or STRING_SIZE = 8
 
@@ -103,12 +101,14 @@ impl StackString {
         extern "C" {
             fn rxx_string_init(ptr: *const u8, len: usize, out: &mut StackString);
         }
-        unsafe {rxx_string_init(val.as_ptr(), val.len(), self);}
+        unsafe {
+            rxx_string_init(val.as_ptr(), val.len(), self);
+        }
         self.pin_str()
     }
 
     pub fn pin_str(&mut self) -> Pin<&mut CxxString> {
-        unsafe {Pin::new_unchecked(&mut *(self as *mut Self as *mut CxxString))}
+        unsafe { Pin::new_unchecked(&mut *(self as *mut Self as *mut CxxString)) }
     }
 }
 
