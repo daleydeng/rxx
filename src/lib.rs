@@ -1,5 +1,6 @@
 #![allow(clippy::missing_safety_doc)]
 #![feature(associated_type_defaults)]
+#![feature(concat_idents)]
 
 pub mod unique_ptr;
 pub use unique_ptr::*;
@@ -16,31 +17,20 @@ pub use cxx_string::*;
 pub mod cxx_vector;
 pub use cxx_vector::*;
 
-#[path="../genrxx/ffi.rs"]
-mod _ffi;
-
-mod gen {
-    pub mod ffi;
-}
-pub use gen::ffi;
-
-pub mod genrxx;
-pub use genrxx::*;
+pub mod ffi;
+pub use ffi::*;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use core::ffi::c_void;
     use std::mem::MaybeUninit;
 
-    impl UniquePtrTarget for i64 {
-        unsafe fn __drop(this: *mut c_void) {
-            extern "C" {
-                fn test_delete_unique_ptr(this: *mut c_void);
-            }
-            test_delete_unique_ptr(this);
-        }
-    }
+    use super::*;
+
+    genrs_unique_ptr!(rxx_unique_i64, i64, crate);
+    genrs_shared_ptr!(rxx_shared_i64, i64, crate);
+    genrs_weak_ptr!(rxx_weak_i64, i64, crate);
+    genrs_vector!(rxx_vector_i64, i64, crate);
 
     fn test_new_unique_ptr(v: i64) -> UniquePtr<i64> {
         extern "C" {
@@ -54,22 +44,6 @@ mod tests {
         }
     }
 
-    impl SharedPtrTarget for i64 {
-        unsafe fn __drop(this: *mut c_void) {
-            extern "C" {
-                fn test_delete_shared_ptr(this: *mut c_void);
-            }
-            test_delete_shared_ptr(this);
-        }
-
-        unsafe fn __clone(this: *const c_void, out: *mut c_void) {
-            extern "C" {
-                fn test_clone_shared_ptr(this: *const c_void, out: *mut c_void);
-            }
-            test_clone_shared_ptr(this, out);
-        }
-    }
-
     fn test_new_shared_ptr(v: i64) -> SharedPtr<i64> {
         extern "C" {
             fn test_new_shared_ptr(val: i64, obj: *mut c_void);
@@ -79,79 +53,6 @@ mod tests {
         unsafe {
             test_new_shared_ptr(v, out.as_mut_ptr() as *mut c_void);
             out.assume_init()
-        }
-    }
-
-    impl WeakPtrTarget for i64 {
-        unsafe fn __clone(this: *const c_void, out: *mut c_void) {
-            extern "C" {
-                fn test_clone_weak_ptr(this: *const c_void, out: *mut c_void);
-            }
-            test_clone_weak_ptr(this, out);
-        }
-
-        unsafe fn __drop(this: *mut c_void) {
-            extern "C" {
-                fn test_delete_weak_ptr(this: *mut c_void);
-            }
-            test_delete_weak_ptr(this);
-        }
-
-        unsafe fn __downgrade(shared: *const c_void, weak: *mut c_void) {
-            extern "C" {
-                fn test_downgrade_weak_ptr(shared: *const c_void, weak: *mut c_void);
-            }
-            test_downgrade_weak_ptr(shared, weak);
-        }
-
-        unsafe fn __upgrade(weak: *const c_void, shared: *mut c_void) {
-            extern "C" {
-                fn test_upgrade_weak_ptr(weak: *const c_void, shared: *mut c_void);
-            }
-            test_upgrade_weak_ptr(weak, shared);
-        }
-    }
-
-    impl VectorElement for i64 {
-        unsafe fn __drop(this: &mut CxxVector<i64>) {
-            extern "C" {
-                fn test_delete_vector(this: &mut CxxVector<i64>);
-            }
-            test_delete_vector(this);
-        }
-
-        unsafe fn __size(this: &CxxVector<i64>) -> usize {
-            extern "C" {
-                fn test_vector_size(this: &CxxVector<i64>) -> usize;
-            }
-            test_vector_size(this)
-        }
-
-        unsafe fn __get_unchecked(this: &CxxVector<i64>, pos: usize) -> &Self {
-            extern "C" {
-                fn test_vector_get(this: &CxxVector<i64>, pos: usize) -> &i64;
-            }
-            test_vector_get(this, pos)
-        }
-        unsafe fn __get_unchecked_mut(this: &mut CxxVector<i64>, pos: usize) -> &mut Self {
-            extern "C" {
-                fn test_vector_get_mut(this: &mut CxxVector<i64>, pos: usize) -> &mut i64;
-            }
-            test_vector_get_mut(this, pos)
-        }
-
-        unsafe fn __push_back(this: &mut CxxVector<i64>, value: &mut i64) {
-            extern "C" {
-                fn test_vector_push_back(this: &mut CxxVector<i64>, value: &mut i64);
-            }
-            test_vector_push_back(this, value);
-        }
-
-        unsafe fn __pop_back(this: &mut CxxVector<i64>, value: *mut i64) {
-            extern "C" {
-                fn test_vector_pop_back(this: &mut CxxVector<i64>, value: *mut i64);
-            }
-            test_vector_pop_back(this, value);
         }
     }
 
@@ -196,6 +97,7 @@ mod tests {
         assert_eq!(o.to_string(), "nullptr");
         assert!(o.is_null());
         let mut o = test_new_unique_ptr(v);
+
         assert!(!o.is_null());
         assert_eq!(*o, v);
 

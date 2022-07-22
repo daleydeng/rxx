@@ -63,4 +63,14 @@ void vector_pop_back(std::vector<T> &self, T *out) {
   self.pop_back();
 }
 
+} // namespace rxx
+
+extern "C" {
+  void rxx_string_init(const uint8_t *ptr, size_t len, std::string *out) noexcept;
+  void rxx_string_destroy(std::string *self) noexcept;
+  size_t rxx_string_length(const std::string &self) noexcept;
+  const char* rxx_string_data(const std::string &self) noexcept;
+  void rxx_string_clear(std::string &self) noexcept;
+  void rxx_string_reserve(std::string &self, size_t n) noexcept;
+  void rxx_string_push(std::string &self, const uint8_t *ptr, size_t len) noexcept;
 }

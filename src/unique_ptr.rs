@@ -12,7 +12,7 @@ pub trait UniquePtrTarget {
 /// Binding to C++ `std::unique_ptr<T, std::default_delete<T>>`.
 #[repr(C)]
 pub struct UniquePtr<T: UniquePtrTarget> {
-    ptr: *mut c_void,
+    pub ptr: *mut c_void,
     pd: PhantomData<T>,
 }
 
