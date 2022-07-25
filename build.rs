@@ -83,11 +83,40 @@ fn main() -> Result<()>
 		    args: &[("int", "a")],
 		    ..FnSig::default()
 		}),
+
 		&genc_fn("rxx_dummy_cpp_add_vector_i64", FnSig {
 		    fn_name: "dummy_cpp_add_vector_i64",
 		    args: &[
 			("std::vector<int64_t>&", "val"),
 			("int", "n"),
+		    ],
+		    ..FnSig::default()
+		}),
+
+		&genc_fn("rxx_dummy_cpp_addret_vector_i64", FnSig {
+		    fn_name: "dummy_cpp_addret_vector_i64",
+		    ret_type: Some("int64_t"),
+		    args: &[
+			("std::vector<int64_t>&", "val"),
+			("int", "n"),
+		    ],
+		    ..FnSig::default()
+		}),
+
+		&genc_fn("rxx_dummy_cpp_get_vector_i64", FnSig {
+		    fn_name: "dummy_cpp_get_vector_i64",
+		    ret_type: Some("int64_t"),
+		    args: &[
+			("std::vector<int64_t>const&", "val"),
+		    ],
+		    ..FnSig::default()
+		}),
+
+		&genc_fn("rxx_dummy_cpp_getvoid_vector_i64", FnSig {
+		    fn_name: "dummy_cpp_getvoid_vector_i64",
+		    args: &[
+			("std::vector<int64_t>const&", "val"),
+			("int", "a"),
 		    ],
 		    ..FnSig::default()
 		}),

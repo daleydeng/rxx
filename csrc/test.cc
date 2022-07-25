@@ -11,6 +11,19 @@ void dummy_cpp_add_vector_i64(std::vector<int64_t>& v, int n) {
   v[0] += n;
 }
 
+int64_t dummy_cpp_addret_vector_i64(std::vector<int64_t>& v, int n) {
+  v[0] += n;
+  return v[0];
+}
+
+int64_t dummy_cpp_get_vector_i64(std::vector<int64_t>const& v) {
+  return v[0];
+}
+
+void dummy_cpp_getvoid_vector_i64(std::vector<int64_t>const& v, int a) {
+  a += v[0];
+}
+
 extern "C" {
 
 void rxx_dummy_new_unique_i64(int64_t v, std::unique_ptr<int64_t> *out) {

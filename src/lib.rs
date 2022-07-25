@@ -27,13 +27,24 @@ mod tests {
 
     use super::*;
 
-    genrs_fn!(fn rxx_dummy_cpp_new_vector_i64(a: i32) -> CxxVector<i64>);
-    genrs_fn!(fn rxx_dummy_cpp_add_vector_i64(a: &mut CxxVector<i64>, i: i32));
+    genrs_fn!(pub fn rxx_dummy_cpp_new_vector_i64(a: i32) -> CxxVector<i64>);
 
-    genrs_unique_ptr!(rxx_unique_i64, i64, crate);
-    genrs_shared_ptr!(rxx_shared_i64, i64, crate);
-    genrs_weak_ptr!(rxx_weak_i64, i64, crate);
-    genrs_vector!(rxx_vector_i64, i64, crate);
+    genrs_fn!(pub fn rxx_dummy_cpp_add_vector_i64(a: &mut CxxVector<i64>, i: i32));
+    genrs_fn!(pub fn rxx_dummy_cpp_addret_vector_i64(a: &mut CxxVector<i64>, i: i32) -> i64);
+
+    genrs_fn!(pub fn rxx_dummy_cpp_get_vector_i64(a: &CxxVector<i64>) -> i64);
+    genrs_fn!(pub fn rxx_dummy_cpp_getvoid_vector_i64(a: &CxxVector<i64>, i: i32));
+
+    type CxxVectorI64 = CxxVector<i64>;
+    genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_add_vector_i64(&mut self, a: i32));
+    genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_addret_vector_i64(&mut self, a: i32) -> i64);
+    genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_get_vector_i64(&self) -> i64);
+    // genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_getvoid_vector_i64(&self, a: i32));
+
+    genrs_unique_ptr!(rxx_unique_i64, i64);
+    genrs_shared_ptr!(rxx_shared_i64, i64);
+    genrs_weak_ptr!(rxx_weak_i64, i64);
+    genrs_vector!(rxx_vector_i64, i64);
 
     fn new_unique_i64(v: i64) -> UniquePtr<i64> {
         extern "C" {
@@ -100,15 +111,22 @@ mod tests {
 
     #[test]
     fn test_cpp_new_vector_i64() {
-	let a = rxx_dummy_cpp_new_vector_i64(123);
-	assert_eq!(a[0], 123);
-    }
-
-    #[test]
-    fn test_cpp_add_vector_i64() {
 	let mut a = rxx_dummy_cpp_new_vector_i64(123);
+	assert_eq!(a[0], 123);
+
 	rxx_dummy_cpp_add_vector_i64(&mut a, 1);
 	assert_eq!(a[0], 124);
+
+	a.rxx_dummy_cpp_add_vector_i64(20);
+	assert_eq!(a[0], 144);
+
+	let b = rxx_dummy_cpp_addret_vector_i64(&mut a, 20);
+	assert_eq!(b, 164);
+
+	let c = rxx_dummy_cpp_get_vector_i64(&a);
+	assert_eq!(c, 164);
+
+	rxx_dummy_cpp_getvoid_vector_i64(&a, 10);
     }
 
 
