@@ -39,7 +39,7 @@ mod tests {
     genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_add_vector_i64(&mut self, a: i32));
     genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_addret_vector_i64(&mut self, a: i32) -> i64);
     genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_get_vector_i64(&self) -> i64);
-    // genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_getvoid_vector_i64(&self, a: i32));
+    genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_getvoid_vector_i64(&self, a: i32));
 
     genrs_unique_ptr!(rxx_unique_i64, i64);
     genrs_shared_ptr!(rxx_shared_i64, i64);
@@ -117,16 +117,20 @@ mod tests {
 	rxx_dummy_cpp_add_vector_i64(&mut a, 1);
 	assert_eq!(a[0], 124);
 
-	a.rxx_dummy_cpp_add_vector_i64(20);
-	assert_eq!(a[0], 144);
-
 	let b = rxx_dummy_cpp_addret_vector_i64(&mut a, 20);
-	assert_eq!(b, 164);
+	assert_eq!(b, 144);
 
 	let c = rxx_dummy_cpp_get_vector_i64(&a);
-	assert_eq!(c, 164);
+	assert_eq!(c, 144);
 
 	rxx_dummy_cpp_getvoid_vector_i64(&a, 10);
+
+	a.rxx_dummy_cpp_add_vector_i64(20);
+	assert_eq!(a[0], 164);
+
+	assert_eq!(a.rxx_dummy_cpp_addret_vector_i64(20), 184);
+	assert_eq!(a.rxx_dummy_cpp_get_vector_i64(), 184);
+	a.rxx_dummy_cpp_getvoid_vector_i64(10);
     }
 
 
