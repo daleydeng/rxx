@@ -27,68 +27,90 @@ mod tests {
 
     use super::*;
 
+    genrs_fn!(fn rxx_dummy_cpp_new_vector_i64(a: i32) -> CxxVector<i64>);
+    genrs_fn!(fn rxx_dummy_cpp_add_vector_i64(a: &mut CxxVector<i64>, i: i32));
+
     genrs_unique_ptr!(rxx_unique_i64, i64, crate);
     genrs_shared_ptr!(rxx_shared_i64, i64, crate);
     genrs_weak_ptr!(rxx_weak_i64, i64, crate);
     genrs_vector!(rxx_vector_i64, i64, crate);
 
-    fn test_new_unique_ptr(v: i64) -> UniquePtr<i64> {
+    fn new_unique_i64(v: i64) -> UniquePtr<i64> {
         extern "C" {
-            fn test_new_unique_ptr(val: i64, out: *mut c_void);
+	    #[link_name="rxx_dummy_new_unique_i64"]
+            fn __func(val: i64, out: *mut c_void);
         }
 
         let mut out = MaybeUninit::<UniquePtr<i64>>::uninit();
         unsafe {
-            test_new_unique_ptr(v, out.as_mut_ptr() as *mut c_void);
+            __func(v, out.as_mut_ptr() as *mut c_void);
             out.assume_init()
         }
     }
 
-    fn test_new_shared_ptr(v: i64) -> SharedPtr<i64> {
+    fn new_shared_i64(v: i64) -> SharedPtr<i64> {
         extern "C" {
-            fn test_new_shared_ptr(val: i64, obj: *mut c_void);
+	    #[link_name="rxx_dummy_new_shared_i64"]
+            fn __func(val: i64, obj: *mut c_void);
         }
 
         let mut out = MaybeUninit::<SharedPtr<i64>>::uninit();
         unsafe {
-            test_new_shared_ptr(v, out.as_mut_ptr() as *mut c_void);
+            __func(v, out.as_mut_ptr() as *mut c_void);
             out.assume_init()
         }
     }
 
-    fn test_new_vector(data: &[i64]) -> CxxVector<i64> {
+    fn new_vector_i64(data: &[i64]) -> CxxVector<i64> {
         extern "C" {
-            fn test_new_vector(data: *const i64, len: usize, out: *mut CxxVector<i64>);
+	    #[link_name="rxx_dummy_new_vector_i64"]
+            fn __func(data: *const i64, len: usize, out: *mut CxxVector<i64>);
         }
 
         let mut out = MaybeUninit::<CxxVector<i64>>::uninit();
         unsafe {
-            test_new_vector(data.as_ptr(), data.len(), out.as_mut_ptr());
+            __func(data.as_ptr(), data.len(), out.as_mut_ptr());
             out.assume_init()
         }
     }
 
-    fn test_new_unique_ptr_string() -> UniquePtr<CxxString> {
+    fn new_unique_string() -> UniquePtr<CxxString> {
         extern "C" {
-            fn test_new_unique_ptr_string(out: *mut UniquePtr<CxxString>);
+	    #[link_name="rxx_dummy_new_unique_string"]
+            fn __func(out: *mut UniquePtr<CxxString>);
         }
         let mut out = MaybeUninit::<UniquePtr<CxxString>>::uninit();
         unsafe {
-            test_new_unique_ptr_string(out.as_mut_ptr());
+            __func(out.as_mut_ptr());
             out.assume_init()
         }
     }
 
-    fn test_new_shared_ptr_string() -> SharedPtr<CxxString> {
+    fn new_shared_ptr_string() -> SharedPtr<CxxString> {
         extern "C" {
-            fn test_new_shared_ptr_string(out: *mut SharedPtr<CxxString>);
+	    #[link_name="rxx_dummy_new_shared_string"]
+            fn __func(out: *mut SharedPtr<CxxString>);
         }
         let mut out = MaybeUninit::<SharedPtr<CxxString>>::uninit();
         unsafe {
-            test_new_shared_ptr_string(out.as_mut_ptr());
+            __func(out.as_mut_ptr());
             out.assume_init()
         }
     }
+
+    #[test]
+    fn test_cpp_new_vector_i64() {
+	let a = rxx_dummy_cpp_new_vector_i64(123);
+	assert_eq!(a[0], 123);
+    }
+
+    #[test]
+    fn test_cpp_add_vector_i64() {
+	let mut a = rxx_dummy_cpp_new_vector_i64(123);
+	rxx_dummy_cpp_add_vector_i64(&mut a, 1);
+	assert_eq!(a[0], 124);
+    }
+
 
     #[test]
     fn test_unique_ptr() {
@@ -96,7 +118,7 @@ mod tests {
         let o: UniquePtr<i64> = UniquePtr::null();
         assert_eq!(o.to_string(), "nullptr");
         assert!(o.is_null());
-        let mut o = test_new_unique_ptr(v);
+        let mut o = new_unique_i64(v);
 
         assert!(!o.is_null());
         assert_eq!(*o, v);
@@ -112,7 +134,7 @@ mod tests {
         let o: SharedPtr<i64> = SharedPtr::null();
         assert_eq!(o.to_string(), "nullptr");
         assert!(o.is_null());
-        let o = test_new_shared_ptr(v);
+        let o = new_shared_i64(v);
         assert!(!o.is_null());
         assert_eq!(*o, v);
 
@@ -153,7 +175,7 @@ mod tests {
     #[test]
     fn test_vector() {
         let a = [1, 2, 3, 4];
-        let v = test_new_vector(&a);
+        let v = new_vector_i64(&a);
         let mut b = v;
         assert_eq!(b.len(), 4);
         assert_eq!(*b.get(2).unwrap(), 3);
@@ -170,13 +192,13 @@ mod tests {
 
     #[test]
     fn test_unique_string() {
-        let s = test_new_unique_ptr_string();
+        let s = new_unique_string();
         assert_eq!(s.to_str(), "test");
     }
 
     #[test]
     fn test_shared_string() {
-        let s = test_new_shared_ptr_string();
+        let s = new_shared_ptr_string();
         assert_eq!(s.to_str(), "test");
     }
 }

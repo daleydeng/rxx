@@ -1,7 +1,49 @@
 use crate::CxxString;
 
 #[macro_export]
-macro_rules! genrs_unique_ptr{
+macro_rules! genrs_fn {
+    (fn $fn:ident ($($arg_name:ident: $arg_type:ty),*) -> $ret_type:ty, $link_name:ident) => {
+	paste::paste! {
+	    pub fn $fn($($arg_name: $arg_type),*) -> $ret_type {
+		extern "C" {
+		    #[link_name = stringify!($link_name)]
+		    fn __func($($arg_name: $arg_type),*, __ret: *mut $ret_type);
+		}
+		unsafe {
+		    let mut __ret = std::mem::MaybeUninit::<$ret_type>::uninit();
+		    let mut __ret_ptr = __ret.as_mut_ptr();
+		    __func($($arg_name),*, __ret_ptr);
+		    __ret.assume_init()
+		}
+	    }
+	}
+    };
+
+    (fn $fn:ident ($($arg_name:ident: $arg_type:ty),*) -> $ret_type:ty) => {
+	genrs_fn!(fn $fn($($arg_name: $arg_type),*) -> $ret_type, $fn);
+    };
+
+    (fn $fn:ident ($($arg_name:ident: $arg_type:ty),*), $link_name:ident) => {
+	paste::paste! {
+	    pub fn $fn($($arg_name: $arg_type),*) {
+		extern "C" {
+		    #[link_name = stringify!($link_name)]
+		    fn __func($($arg_name: $arg_type),*);
+		}
+		unsafe {
+		    __func($($arg_name),*);
+		}
+	    }
+	}
+    };
+    (fn $fn:ident ($($arg_name:ident: $arg_type:ty),*)) => {
+	genrs_fn!(fn $fn($($arg_name: $arg_type),*), $fn);
+    };
+
+}
+
+#[macro_export]
+macro_rules! genrs_unique_ptr {
     ($link_name:ident, $tp:ty, $c:ident) => {
 	paste::paste! {
 	    impl $c::UniquePtrTarget for $tp {
@@ -18,7 +60,7 @@ macro_rules! genrs_unique_ptr{
 }
 
 #[macro_export]
-macro_rules! genrs_shared_ptr{
+macro_rules! genrs_shared_ptr {
     ($link_name:ident, $tp:ident, $c:ident) => {
 	paste::paste! {
 	    impl $c::SharedPtrTarget for $tp {
@@ -43,7 +85,7 @@ macro_rules! genrs_shared_ptr{
 }
 
 #[macro_export]
-macro_rules! genrs_weak_ptr{
+macro_rules! genrs_weak_ptr {
     ($link_name:ident, $tp:ident, $c:ident) => {
 	paste::paste! {
 	    impl $c::WeakPtrTarget for $tp {
@@ -84,7 +126,7 @@ macro_rules! genrs_weak_ptr{
 }
 
 #[macro_export]
-macro_rules! genrs_vector{
+macro_rules! genrs_vector {
     ($link_name:ident, $tp:ty, $c:ident) => {
 	paste::paste! {
 	    impl $c::VectorElement for $tp {

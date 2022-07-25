@@ -3,6 +3,49 @@ use lazy_static::lazy_static;
 use serde_json::json;
 use handlebars::Handlebars;
 
+static TPL_RET_FN: &str = r#"
+extern "C" void {{name}}({{{decl_link_args}}} {{{ret_type}}} *__ret) noexcept {
+    {{{ret_type}}} (*__func)({{{decl_args}}}) = {{{fn}}};
+    new (__ret) {{{ret_type}}}(__func({{{call_args}}}));
+}
+"#;
+
+static TPL_VOID_FN: &str = r#"
+extern "C" void {{name}}({{{decl_link_args}}}) noexcept {
+    void (*__func)({{{decl_args}}}) = {{{fn}}};
+    __func({{{call_args}}});
+}
+"#;
+
+// static TPL_MEM_RET_FN: &str = r#"
+// extern "C" void {{name}}({{{cls}}} const& self {{{decl_link_args}}} {{{ret_type}}} *__ret) noexcept {
+//     {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{fn}}};
+//     new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
+// }
+// "#;
+
+// static TPL_MEM_RET_FN_MUT: &str = r#"
+// extern "C" void {{name}}({{{cls}}} & self {{{decl_link_args}}} {{{ret_type}}} *__ret) noexcept {
+//     {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) = {{{fn}}};
+//     new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
+// }
+// "#;
+
+// static TPL_MEM_VOID_FN: &str = r#"
+// void {{name}}({{{cls}}} const& self, {{{decl_link_args}}}) noexcept {
+//     {{{ret_type}}} ({{{cls}}}::*__func)({decl_args}) const = {{{fn}}};
+//     new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
+// }
+// "#;
+
+
+// static TPL_MEM_VOID_FN_MUT: &str = r#"
+// void {{name}}({{{cls}}} const& self, {{{decl_link_args}}}) noexcept {
+//     {{{ret_type}}} ({{{cls}}}::*__func)({decl_args}) const = {{{fn}}};
+//     new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
+// }
+// "#;
+
 static TPL_UNIQUE_PTR: &str = r#"
 extern "C" void {{name}}_delete({{{c_tp}}} &self) noexcept {
     rxx::destroy(&self);
@@ -66,12 +109,74 @@ extern "C" void {{name}}_pop_back({{{c_tp}}} &self, {{{c_item_tp}}} *out) {
 lazy_static! {
     static ref HANDLEBARS: Handlebars<'static> = {
 	let mut hb = Handlebars::new();
+	hb.set_strict_mode(true);
+	hb.register_template_string("tpl_ret_fn", TPL_RET_FN.trim_start()).unwrap();
+	hb.register_template_string("tpl_void_fn", TPL_VOID_FN.trim_start()).unwrap();
 	hb.register_template_string("tpl_unique_ptr", TPL_UNIQUE_PTR.trim_start()).unwrap();
 	hb.register_template_string("tpl_shared_ptr", TPL_SHARED_PTR.trim_start()).unwrap();
 	hb.register_template_string("tpl_weak_ptr", TPL_WEAK_PTR.trim_start()).unwrap();
 	hb.register_template_string("tpl_vector", TPL_VECTOR.trim_start()).unwrap();
 	hb
     };
+}
+
+#[derive(Default)]
+pub struct FnSig<'a, 'b> {
+    pub cls: Option<&'a str>,
+    pub fn_name: &'a str,
+
+    pub ret_type: Option<&'a str>,
+    pub args: &'b [(&'a str, &'a str)],
+}
+
+pub fn genc_fn(link_name: &str, fn_sig: FnSig) -> String {
+    let s_decl_args = fn_sig.args.iter().map(|(tp, val)| {
+	format!("{} {}", tp, val)
+    }).collect::<Vec<_>>().join(",");
+
+    let s_call_args = fn_sig.args.iter().map(|(_, val)| {
+	val.to_string()
+    }).collect::<Vec<_>>().join(",");
+
+    let mut s_decl_link_args = s_decl_args.clone();
+
+    if fn_sig.ret_type.is_some() {
+	if !s_decl_link_args.is_empty() {
+	    s_decl_link_args += ",";
+	}
+    }
+
+    match fn_sig.cls {
+	None => {
+	    match fn_sig.ret_type {
+		Some(ret_type) => {
+		    HANDLEBARS.render("tpl_ret_fn", &json!({
+			"name": link_name,
+			"fn": fn_sig.fn_name,
+			"ret_type": ret_type,
+			"decl_link_args": s_decl_link_args,
+			"decl_args": s_decl_args,
+			"call_args": s_call_args,
+
+		    })).unwrap()
+		},
+		None => {
+		    HANDLEBARS.render("tpl_void_fn", &json!({
+			"name": link_name,
+			"fn": fn_sig.fn_name,
+			"decl_link_args": s_decl_link_args,
+			"decl_args": s_decl_args,
+			"call_args": s_call_args,
+
+		    })).unwrap()
+		}
+	    }
+	},
+
+	Some(cls) => {
+	    String::new()
+	}
+    }
 }
 
 pub fn genc_unique_ptr(link_name: &str, c_tp: &str) -> String {
@@ -109,7 +214,40 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_templates() {
+    fn test_fn() {
+	let s=  genc_fn("MapMut_Matrix3d_new", FnSig {
+	    fn_name: "MapMut_fixed_new<Matrix3d, double>",
+	    ret_type: Some("Eigen::Map<Matrix3d>"),
+	    args: &[
+		("double *", "data"),
+	    ],
+	    ..FnSig::default()
+	});
+
+	assert_eq!(s, r#"
+extern "C" void MapMut_Matrix3d_new(double * data, Eigen::Map<Matrix3d> *__ret) noexcept {
+    Eigen::Map<Matrix3d> (*__func)(double * data) = MapMut_fixed_new<Matrix3d, double>;
+    new (__ret) Eigen::Map<Matrix3d>(__func(data));
+}
+"#.trim_start());
+
+	let s = genc_fn("rxx_Matrix3d_print", FnSig {
+	    fn_name: "Matrix3d_print",
+	    args: &[("Matrix3d const &", "self")],
+	    ..FnSig::default()
+	});
+
+	assert_eq!(s, r#"
+extern "C" void rxx_Matrix3d_print(Matrix3d const & self) noexcept {
+    void (*__func)(Matrix3d const & self) = Matrix3d_print;
+    __func(self);
+}
+"#.trim_start());
+
+    }
+
+    #[test]
+    fn test_std() {
 	let s = genc_unique_ptr("rxx_unique_string", "std::unique_ptr<std::string>");
 	assert_eq!(s, r#"
 extern "C" void rxx_unique_string_delete(std::unique_ptr<std::string> &self) noexcept {
