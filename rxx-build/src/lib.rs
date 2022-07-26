@@ -4,7 +4,7 @@ use handlebars::Handlebars;
 use serde_json::json;
 
 static TPL_RET_OBJECT_FN: &str = r#"
-extern "C" void {{name}}({{{decl_link_args}}} {{{ret_type}}} *__ret) noexcept {
+extern "C" void {{name}}({{{decl_link_args}}}{{{ret_type}}} *__ret) noexcept {
     {{{ret_type}}} (*__func)({{{decl_args}}}) = {{{fn}}};
     new (__ret) ({{{ret_type}}})(__func({{{call_args}}}));
 }
@@ -25,42 +25,42 @@ extern "C" void {{name}}({{{decl_link_args}}}) noexcept {
 "#;
 
 static TPL_RET_OBJECT_MEMFN: &str = r#"
-extern "C" void {{name}}({{{cls}}} const &self {{{decl_link_args}}} {{{ret_type}}} *__ret) noexcept {
+extern "C" void {{name}}({{{cls}}} const &self{{{decl_link_args}}}{{{ret_type}}} *__ret) noexcept {
     {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{fn}}};
     new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
 }
 "#;
 
 static TPL_RET_ATOMIC_MEMFN: &str = r#"
-extern "C" {{{ret_type}}} {{name}}({{{cls}}} const &self {{{decl_link_args}}}) noexcept {
+extern "C" {{{ret_type}}} {{name}}({{{cls}}} const &self{{{decl_link_args}}}) noexcept {
     {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{fn}}};
     return (self.*__func)({{{call_args}}});
 }
 "#;
 
 static TPL_VOID_MEMFN: &str = r#"
-extern "C" void {{name}}({{{cls}}} const &self {{{decl_link_args}}}) noexcept {
+extern "C" void {{name}}({{{cls}}} const &self{{{decl_link_args}}}) noexcept {
     void ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{fn}}};
     (self.*__func)({{{call_args}}});
 }
 "#;
 
 static TPL_RET_OBJECT_MEMFN_MUT: &str = r#"
-extern "C" void {{name}}({{{cls}}} &self {{{decl_link_args}}} {{{ret_type}}} *__ret) noexcept {
+extern "C" void {{name}}({{{cls}}} &self{{{decl_link_args}}}{{{ret_type}}} *__ret) noexcept {
     {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) = {{{fn}}};
     new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
 }
 "#;
 
 static TPL_RET_ATOMIC_MEMFN_MUT: &str = r#"
-extern "C" {{{ret_type}}} {{name}}({{{cls}}} &self {{{decl_link_args}}}) noexcept {
+extern "C" {{{ret_type}}} {{name}}({{{cls}}} &self{{{decl_link_args}}}) noexcept {
     {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) = {{{fn}}};
     return (self.*__func)({{{call_args}}});
 }
 "#;
 
 static TPL_VOID_MEMFN_MUT: &str = r#"
-extern "C" void {{name}}({{{cls}}} &self {{{decl_link_args}}}) noexcept {
+extern "C" void {{name}}({{{cls}}} &self{{{decl_link_args}}}) noexcept {
     void ({{{cls}}}::*__func)({{{decl_args}}}) = {{{fn}}};
     (self.*__func)({{{call_args}}});
 }
@@ -201,9 +201,18 @@ pub fn genc_fn(link_name: &str, fn_sig: FnSig) -> String {
 
     let mut s_decl_link_args = s_decl_args.clone();
 
-    if fn_sig.ret_type.is_object() && !s_decl_link_args.is_empty() {
-        s_decl_link_args += ",";
-    }
+    if !s_decl_link_args.is_empty() {
+        if fn_sig.ret_type.is_object() {
+            s_decl_link_args += ", ";
+        }
+		if fn_sig.cls.is_some() {
+			s_decl_link_args.insert_str(0, ", ");
+		}
+    } else {
+		if fn_sig.ret_type.is_object() && fn_sig.cls.is_some() {
+			s_decl_link_args = ", ".to_string();
+		}
+	}
 
     match fn_sig.cls {
         None => {
@@ -241,10 +250,7 @@ pub fn genc_fn(link_name: &str, fn_sig: FnSig) -> String {
 
             let fn_name = fn_sig.fn_name.replace("$C", cls);
             let ret_type = ret_type.replace("$C", cls);
-            let mut s_decl_link_args = s_decl_link_args.replace("$C", cls);
-            if !s_decl_link_args.is_empty() {
-                s_decl_link_args = format!(", {s_decl_link_args}");
-            }
+            let s_decl_link_args = s_decl_link_args.replace("$C", cls);
             let s_decl_args = s_decl_args.replace("$C", cls);
             let s_call_args = s_call_args.replace("$C", cls);
 
