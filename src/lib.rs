@@ -1,6 +1,5 @@
 #![allow(clippy::missing_safety_doc)]
 #![feature(associated_type_defaults)]
-#![feature(concat_idents)]
 
 pub mod unique_ptr;
 pub use unique_ptr::*;
@@ -23,6 +22,7 @@ pub use ffi::*;
 #[cfg(test)]
 mod tests {
     use core::ffi::c_void;
+    use std::marker::PhantomData;
     use std::mem::MaybeUninit;
 
     use super::*;
@@ -30,16 +30,17 @@ mod tests {
     genrs_fn!(pub fn rxx_dummy_cpp_new_vector_i64(a: i32) -> CxxVector<i64>);
 
     genrs_fn!(pub fn rxx_dummy_cpp_add_vector_i64(a: &mut CxxVector<i64>, i: i32));
-    genrs_fn!(pub fn rxx_dummy_cpp_addret_vector_i64(a: &mut CxxVector<i64>, i: i32) -> i64);
+    genrs_fn!(pub fn rxx_dummy_cpp_addret_vector_i64(a: &mut CxxVector<i64>, i: i32) -> i64, cret=atomic); // match with build.rs
 
     genrs_fn!(pub fn rxx_dummy_cpp_get_vector_i64(a: &CxxVector<i64>) -> i64);
     genrs_fn!(pub fn rxx_dummy_cpp_getvoid_vector_i64(a: &CxxVector<i64>, i: i32));
+    genrs_fn!(pub fn rxx_dummy_cpp_getref_vector_i64<'a>(a: &'a CxxVector<i64>, i: i32) -> &'a i64, cret=atomic);
 
-    type CxxVectorI64 = CxxVector<i64>;
-    genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_add_vector_i64(&mut self, a: i32));
-    genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_addret_vector_i64(&mut self, a: i32) -> i64);
-    genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_get_vector_i64(&self) -> i64);
-    genrs_fn!(pub fn CxxVectorI64::rxx_dummy_cpp_getvoid_vector_i64(&self, a: i32));
+    genrs_fn!(pub fn CxxVector<i64> | add(&mut self, a: i32), ln=rxx_dummy_cpp_add_vector_i64);
+    genrs_fn!(pub fn CxxVector<i64> | addret(&mut self, a: i32) -> i64, cret=atomic, ln=rxx_dummy_cpp_addret_vector_i64);
+    genrs_fn!(pub fn CxxVector<i64> | get1(&self) -> i64, ln=rxx_dummy_cpp_get_vector_i64);
+    genrs_fn!(pub fn CxxVector<i64> | getvoid(&self, a: i32), ln=rxx_dummy_cpp_getvoid_vector_i64);
+    genrs_fn!(pub fn CxxVector<i64> | getref(&self, a: i32) -> &i64, cret=atomic, ln=rxx_dummy_cpp_getref_vector_i64);
 
     genrs_unique_ptr!(rxx_unique_i64, i64);
     genrs_shared_ptr!(rxx_shared_i64, i64);
@@ -109,8 +110,19 @@ mod tests {
         }
     }
 
+    #[repr(C)]
+    struct Dummy<'a> {
+	data: *mut i64,
+	len: usize,
+	_ty: PhantomData<&'a i64>,
+    }
+
+    genrs_fn!(pub fn Dummy<'_> | get(&self, idx: usize) -> i64, cret=atomic, ln=rxx_Dummy_get);
+    genrs_fn!(pub fn Dummy<'_> | get_mut(&mut self, idx: usize) -> &'this mut i64, cret=atomic, ln=rxx_Dummy_get_mut);
+    genrs_fn!(pub fn Dummy<'_> | add(&mut self, val: i64), ln=rxx_Dummy_add);
+
     #[test]
-    fn test_cpp_new_vector_i64() {
+    fn test_cpp_fn() {
 	let mut a = rxx_dummy_cpp_new_vector_i64(123);
 	assert_eq!(a[0], 123);
 
@@ -125,14 +137,41 @@ mod tests {
 
 	rxx_dummy_cpp_getvoid_vector_i64(&a, 10);
 
-	a.rxx_dummy_cpp_add_vector_i64(20);
+	a.add(20);
 	assert_eq!(a[0], 164);
 
-	assert_eq!(a.rxx_dummy_cpp_addret_vector_i64(20), 184);
-	assert_eq!(a.rxx_dummy_cpp_get_vector_i64(), 184);
-	a.rxx_dummy_cpp_getvoid_vector_i64(10);
+	assert_eq!(a.addret(20), 184);
+	assert_eq!(a.get1(), 184);
+	a.getvoid(10);
+
+	let b = rxx_dummy_cpp_getref_vector_i64(&a, 0);
+	assert_eq!(*b, 184);
+
+	let b = a.getref(0);
+	assert_eq!(*b, 184);
+
     }
 
+    #[test]
+    fn test_cpp_cls() {
+	let mut buf  = [1i64, 2, 3, 4];
+	let a = Dummy {
+	    data: buf.as_mut_ptr(),
+	    len: buf.len(),
+	    _ty: PhantomData,
+	};
+
+	assert_eq!(a.get(0), 1);
+	assert_eq!(a.get(2), 3);
+
+	let mut b = a;
+	let i = b.get_mut(0);
+	*i = 8;
+	assert_eq!(b.get(0), 8);
+
+	b.add(3);
+	assert_eq!(b.get(0), 11);
+    }
 
     #[test]
     fn test_unique_ptr() {

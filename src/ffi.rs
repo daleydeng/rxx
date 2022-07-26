@@ -1,11 +1,11 @@
 
 #[macro_export]
 macro_rules! genrs_fn {
-    ($vis:vis fn $fn:ident ($($arg:ident : $arg_type:ty),*) -> $ret_type:path, $link_name:ident) => {
-	$vis fn $fn($($arg: $arg_type),*) -> $ret_type {
+    ($vis:vis fn $fn:ident$(< $($lt:tt),+ >)?($($arg:ident : $arg_type:ty),*) -> $ret_type:ty, cret=object, ln=$link_name:ident) => {
+	$vis fn $fn $(<$($lt),+>)? ($($arg: $arg_type),*) -> $ret_type {
 	    extern "C" {
 		#[link_name = stringify!($link_name)]
-		fn __func($($arg: $arg_type),*, __ret: *mut $ret_type);
+		fn __func $(<$($lt),+>)? ($($arg: $arg_type),*, __ret: *mut $ret_type);
 	    }
 	    unsafe {
 		let mut __ret = std::mem::MaybeUninit::<$ret_type>::uninit();
@@ -16,33 +16,53 @@ macro_rules! genrs_fn {
 	}
     };
 
-    ($vis:vis fn $fn:ident ($($arg:ident: $arg_type:ty),*) -> $ret_type:ty) => {
-	genrs_fn!($vis fn $fn($($arg: $arg_type),*) -> $ret_type, $fn);
-    };
-
-    ($vis:vis fn $fn:ident ($($arg:ident: $arg_type:ty),*), $link_name:ident) => {
-	$vis fn $fn($($arg: $arg_type),*) {
+    ($vis:vis fn $fn:ident $(< $($lt:tt),+ >)? ($($arg:ident : $arg_type:ty),*) -> $ret_type:ty, cret=atomic, ln=$link_name:ident) => {
+	$vis fn $fn $(<$($lt),+>)? ($($arg: $arg_type),*) -> $ret_type {
 	    extern "C" {
 		#[link_name = stringify!($link_name)]
-		fn __func($($arg: $arg_type),*);
+		fn __func $(<$($lt),+>)? ($($arg: $arg_type),*) -> $ret_type;
 	    }
 	    unsafe {
-		__func($($arg),*);
+		__func($($arg),*)
 	    }
 	}
     };
 
-    ($vis:vis fn $fn:ident ($($arg:ident: $arg_type:ty),*)) => {
-	genrs_fn!($vis fn $fn($($arg: $arg_type),*), $fn);
+    ($vis:vis fn $fn:ident $(< $($lt:tt),+>)? ($($arg:ident: $arg_type:ty),*) -> $ret_type:ty, cret=$c_ret_type:ident) => {
+	genrs_fn!($vis fn $fn $(<$($lt),+>)? ($($arg: $arg_type),*) -> $ret_type, cret=$c_ret_type, ln=$fn);
+    };
+
+    ($vis:vis fn $fn:ident $(< $($lt:tt),+>)? ($($arg:ident: $arg_type:ty),*) -> $ret_type:ty, ln=$link_name:ident) => {
+	genrs_fn!($vis fn $fn $(<$($lt),+>)? ($($arg: $arg_type),*) -> $ret_type, cret=object, ln=$link_name);
+    };
+
+    ($vis:vis fn $fn:ident $(< $($lt:tt),+>)? ($($arg:ident: $arg_type:ty),*) -> $ret_type:ty) => {
+	genrs_fn!($vis fn $fn $(<$($lt),+>)? ($($arg: $arg_type),*) -> $ret_type, cret=object, ln=$fn);
+    };
+
+    ($vis:vis fn $fn:ident $(< $($lt:tt),+ >)? ($($arg:ident: $arg_type:ty),*), ln=$link_name:ident) => {
+	$vis fn $fn $(<$($lt),+>)? ($($arg: $arg_type),*) {
+	    extern "C" {
+		#[link_name = stringify!($link_name)]
+		fn __func $(<$($lt),+>)? ($($arg: $arg_type),*);
+	    }
+	    unsafe {
+		__func($($arg),*)
+	    }
+	}
+    };
+
+    ($vis:vis fn $fn:ident $(< $($lt:tt),+ >)? ($($arg:ident: $arg_type:ty),*)) => {
+	genrs_fn!($vis fn $fn $(<$($lt),+>)? ($($arg: $arg_type),*), ln=$fn);
     };
 
     // &self ret
-    ($vis:vis fn $cls:ident :: $fn:ident (&self $(, $arg:ident : $arg_type:ty)*) -> $ret_type:path, $link_name:ident) => {
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&self $(, $arg:ident : $arg_type:ty)*) -> $ret_type:ty, cret=object, ln=$link_name:ident) => {
 	impl $cls {
-	    $vis fn $fn(&self $(, $arg: $arg_type)*) -> $ret_type {
+	    $vis fn $fn $(<$($lt),+>)? (&self $(, $arg: $arg_type)*) -> $ret_type {
 		extern "C" {
 		    #[link_name = stringify!($link_name)]
-		    fn __func(this: &$cls $(, $arg: $arg_type)*, __ret: *mut $ret_type);
+		    fn __func $(<$($lt),+>)? (this: &$cls $(, $arg: $arg_type)*, __ret: *mut $ret_type);
 		}
 		unsafe {
 		    let mut __ret = std::mem::MaybeUninit::<$ret_type>::uninit();
@@ -54,36 +74,58 @@ macro_rules! genrs_fn {
 	}
     };
 
-    ($vis:vis fn $cls:ident :: $fn:ident (&self $(, $arg:ident : $arg_type:ty)*) -> $ret_type:path) => {
-	genrs_fn!($vis fn $cls :: $fn(&self $(, $arg : $arg_type)*) -> $ret_type, $fn);
-    };
-
-    // &self void
-    ($vis:vis fn $cls:ident :: $fn:ident (&self $(, $arg:ident : $arg_type:ty)*), $link_name:ident) => {
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&self $(, $arg:ident : $arg_type:ty)*) -> $ret_type:ty, cret=atomic, ln=$link_name:ident) => {
 	impl $cls {
-	    $vis fn $fn(&self $(, $arg: $arg_type)*) {
+	    $vis fn $fn $(<$($lt),+>)? (&self $(, $arg: $arg_type)*) -> $ret_type {
 		extern "C" {
 		    #[link_name = stringify!($link_name)]
-		    fn __func(this: &$cls $(, $arg: $arg_type)*);
+		    fn __func $(<$($lt),+>)? (this: &$cls $(, $arg: $arg_type)*) -> $ret_type;
 		}
 		unsafe {
-		    __func(self $(, $arg)*);
+		    __func(self $(, $arg)*)
 		}
 	    }
 	}
     };
 
-    ($vis:vis fn $cls:ident :: $fn:ident (&self $(, $arg:ident: $arg_type:ty)*)) => {
-	genrs_fn!($vis fn $cls :: $fn(&self $(, $arg: $arg_type)*), $fn);
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&self $(, $arg:ident : $arg_type:ty)*) -> $ret_type:ty, cret=$c_ret_type:ident) => {
+	genrs_fn!($vis fn $cls | $fn $(<$($lt),+>)? (&self $(, $arg : $arg_type)*) -> $ret_type, cret=$c_ret_type, ln=$fn);
+    };
+
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&self $(, $arg:ident : $arg_type:ty)*) -> $ret_type:ty, ln=$link_name:ident) => {
+	genrs_fn!($vis fn $cls | $fn $(<$($lt),+>)? (&self $(, $arg : $arg_type)*) -> $ret_type, cret=object, ln=$link_name);
+    };
+
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&self $(, $arg:ident : $arg_type:ty)*) -> $ret_type:ty) => {
+	genrs_fn!($vis fn $cls | $fn $(<$($lt),+>)? (&self $(, $arg : $arg_type)*) -> $ret_type, cret=object, ln=$fn);
+    };
+
+    // &self void
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&self $(, $arg:ident : $arg_type:ty)*), ln=$link_name:ident) => {
+	impl $cls {
+	    $vis fn $fn $(<$($lt),+>)? (&self $(, $arg: $arg_type)*) {
+		extern "C" {
+		    #[link_name = stringify!($link_name)]
+		    fn __func $(<$($lt),+>)? (this: &$cls $(, $arg: $arg_type)*);
+		}
+		unsafe {
+		    __func(self $(, $arg)*)
+		}
+	    }
+	}
+    };
+
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&self $(, $arg:ident: $arg_type:ty)*)) => {
+	genrs_fn!($vis fn $cls | $fn $(<$($lt),+>)? (&self $(, $arg: $arg_type)*), ln=$fn);
     };
 
     // &mut self ret
-    ($vis:vis fn $cls:ident :: $fn:ident (&mut self $(, $arg:ident : $arg_type:ty)*) -> $ret_type:path, $link_name:ident) => {
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&mut self $(, $arg:ident : $arg_type:ty)*) -> $ret_type:ty, cret=object, ln=$link_name:ident) => {
 	impl $cls {
-	    $vis fn $fn(&mut self $(, $arg: $arg_type)*) -> $ret_type {
+	    $vis fn $fn <'this$(,$lt)*> (self: &'this mut Self $(, $arg: $arg_type)*) -> $ret_type {
 		extern "C" {
 		    #[link_name = stringify!($link_name)]
-		    fn __func(this: &mut $cls $(, $arg: $arg_type)*, __ret: *mut $ret_type);
+		    fn __func <'this$(,$lt)*> (this: &'this mut $cls $(, $arg: $arg_type)*, __ret: *mut $ret_type);
 		}
 		unsafe {
 		    let mut __ret = std::mem::MaybeUninit::<$ret_type>::uninit();
@@ -95,17 +137,39 @@ macro_rules! genrs_fn {
 	}
     };
 
-    ($vis:vis fn $cls:ident :: $fn:ident (&mut self $(, $arg:ident: $arg_type:ty)*) -> $ret_type:path) => {
-	genrs_fn!($vis fn $cls :: $fn(&mut self $(, $arg: $arg_type)*) -> $ret_type, $fn);
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&mut self $(, $arg:ident : $arg_type:ty)*) -> $ret_type:ty, cret=atomic, ln=$link_name:ident) => {
+	impl $cls {
+	    $vis fn $fn <'this$(,$lt)*> (self: &'this mut Self $(, $arg: $arg_type)*) -> $ret_type {
+		extern "C" {
+		    #[link_name = stringify!($link_name)]
+		    fn __func <'this$(,$lt)*> (this: &'this mut $cls $(, $arg: $arg_type)*) -> $ret_type;
+		}
+		unsafe {
+		    __func(self $(, $arg)*)
+		}
+	    }
+	}
+    };
+
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&mut self $(, $arg:ident: $arg_type:ty)*) -> $ret_type:ty, cret=$c_ret_type:ident) => {
+	genrs_fn!($vis fn $cls | $fn $(<$($lt),+>)? (&mut self $(, $arg: $arg_type)*) -> $ret_type, cret=$c_ret_type, ln=$fn);
+    };
+
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&mut self $(, $arg:ident: $arg_type:ty)*) -> $ret_type:ty, ln=$link_name:ident) => {
+	genrs_fn!($vis fn $cls | $fn $(<$($lt),+>)? (&mut self $(, $arg: $arg_type)*) -> $ret_type, cret=object, ln=$link_name);
+    };
+
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&mut self $(, $arg:ident: $arg_type:ty)*) -> $ret_type:ty) => {
+	genrs_fn!($vis fn $cls | $fn $(<$($lt),+>)? (&mut self $(, $arg: $arg_type)*) -> $ret_type, cret=object, ln=$fn);
     };
 
     // &self void
-    ($vis:vis fn $cls:ident :: $fn:ident (&mut self $(, $arg:ident : $arg_type:ty)*), $link_name:ident) => {
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&mut self $(, $arg:ident : $arg_type:ty)*), ln=$link_name:ident) => {
 	impl $cls {
-	    $vis fn $fn(&mut self $(, $arg: $arg_type)*) {
+	    $vis fn $fn $(<$($lt),+>)? (&mut self $(, $arg: $arg_type)*) {
 		extern "C" {
 		    #[link_name = stringify!($link_name)]
-		    fn __func(this: &mut $cls $(, $arg: $arg_type)*);
+		    fn __func $(<$($lt),+>)? (this: &mut $cls $(, $arg: $arg_type)*);
 		}
 		unsafe {
 		    __func(self $(, $arg)*);
@@ -114,15 +178,15 @@ macro_rules! genrs_fn {
 	}
     };
 
-    ($vis:vis fn $cls:ident :: $fn:ident (&mut self $(, $arg:ident: $arg_type:ty)*)) => {
-	genrs_fn!($vis fn $cls :: $fn(&mut self $(, $arg: $arg_type)*), $fn);
+    ($vis:vis fn $cls:ty | $fn:ident $(< $($lt:tt),+ >)? (&mut self $(, $arg:ident: $arg_type:ty)*)) => {
+	genrs_fn!($vis fn $cls | $fn $(<$($lt),+>)? (&mut self $(, $arg: $arg_type)*), ln=$fn);
     };
 
 }
 
 #[macro_export]
 macro_rules! genrs_unique_ptr {
-    ($link_name:ident, $tp:path) => {
+    ($link_name:ident, $tp:ty) => {
 	paste::paste! {
 	    impl $crate::UniquePtrTarget for $tp {
 		unsafe fn __drop(this: *mut core::ffi::c_void) {
@@ -139,7 +203,7 @@ macro_rules! genrs_unique_ptr {
 
 #[macro_export]
 macro_rules! genrs_shared_ptr {
-    ($link_name:ident, $tp:path) => {
+    ($link_name:ident, $tp:ty) => {
 	paste::paste! {
 	    impl $crate::SharedPtrTarget for $tp {
 		unsafe fn __drop(this: *mut core::ffi::c_void) {
@@ -164,7 +228,7 @@ macro_rules! genrs_shared_ptr {
 
 #[macro_export]
 macro_rules! genrs_weak_ptr {
-    ($link_name:ident, $tp:path) => {
+    ($link_name:ident, $tp:ty) => {
 	paste::paste! {
 	    impl $crate::WeakPtrTarget for $tp {
 		unsafe fn __drop(this: *mut core::ffi::c_void) {
@@ -205,7 +269,7 @@ macro_rules! genrs_weak_ptr {
 
 #[macro_export]
 macro_rules! genrs_vector {
-    ($link_name:ident, $tp:path) => {
+    ($link_name:ident, $tp:ty) => {
 	paste::paste! {
 	    impl $crate::VectorElement for $tp {
 		unsafe fn __drop(this: &mut $crate::CxxVector<$tp>) {

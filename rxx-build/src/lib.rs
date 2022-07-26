@@ -3,10 +3,17 @@ use lazy_static::lazy_static;
 use serde_json::json;
 use handlebars::Handlebars;
 
-static TPL_RET_FN: &str = r#"
+static TPL_RET_OBJECT_FN: &str = r#"
 extern "C" void {{name}}({{{decl_link_args}}} {{{ret_type}}} *__ret) noexcept {
     {{{ret_type}}} (*__func)({{{decl_args}}}) = {{{fn}}};
-    new (__ret) {{{ret_type}}}(__func({{{call_args}}}));
+    new (__ret) ({{{ret_type}}})(__func({{{call_args}}}));
+}
+"#;
+
+static TPL_RET_ATOMIC_FN: &str = r#"
+extern "C" {{{ret_type}}} {{name}}({{{decl_link_args}}}) noexcept {
+    {{{ret_type}}} (*__func)({{{decl_args}}}) = {{{fn}}};
+    return __func({{{call_args}}});
 }
 "#;
 
@@ -17,34 +24,47 @@ extern "C" void {{name}}({{{decl_link_args}}}) noexcept {
 }
 "#;
 
-// static TPL_MEM_RET_FN: &str = r#"
-// extern "C" void {{name}}({{{cls}}} const& self {{{decl_link_args}}} {{{ret_type}}} *__ret) noexcept {
-//     {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{fn}}};
-//     new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
-// }
-// "#;
+static TPL_RET_OBJECT_MEMFN: &str = r#"
+extern "C" void {{name}}({{{cls}}} const &self {{{decl_link_args}}} {{{ret_type}}} *__ret) noexcept {
+    {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{fn}}};
+    new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
+}
+"#;
 
-// static TPL_MEM_RET_FN_MUT: &str = r#"
-// extern "C" void {{name}}({{{cls}}} & self {{{decl_link_args}}} {{{ret_type}}} *__ret) noexcept {
-//     {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) = {{{fn}}};
-//     new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
-// }
-// "#;
+static TPL_RET_ATOMIC_MEMFN: &str = r#"
+extern "C" {{{ret_type}}} {{name}}({{{cls}}} const &self {{{decl_link_args}}}) noexcept {
+    {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{fn}}};
+    return (self.*__func)({{{call_args}}});
+}
+"#;
 
-// static TPL_MEM_VOID_FN: &str = r#"
-// void {{name}}({{{cls}}} const& self, {{{decl_link_args}}}) noexcept {
-//     {{{ret_type}}} ({{{cls}}}::*__func)({decl_args}) const = {{{fn}}};
-//     new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
-// }
-// "#;
+static TPL_VOID_MEMFN: &str = r#"
+extern "C" void {{name}}({{{cls}}} const &self {{{decl_link_args}}}) noexcept {
+    void ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{fn}}};
+    (self.*__func)({{{call_args}}});
+}
+"#;
 
+static TPL_RET_OBJECT_MEMFN_MUT: &str = r#"
+extern "C" void {{name}}({{{cls}}} &self {{{decl_link_args}}} {{{ret_type}}} *__ret) noexcept {
+    {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) = {{{fn}}};
+    new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
+}
+"#;
 
-// static TPL_MEM_VOID_FN_MUT: &str = r#"
-// void {{name}}({{{cls}}} const& self, {{{decl_link_args}}}) noexcept {
-//     {{{ret_type}}} ({{{cls}}}::*__func)({decl_args}) const = {{{fn}}};
-//     new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
-// }
-// "#;
+static TPL_RET_ATOMIC_MEMFN_MUT: &str = r#"
+extern "C" {{{ret_type}}} {{name}}({{{cls}}} &self {{{decl_link_args}}}) noexcept {
+    {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) = {{{fn}}};
+    return (self.*__func)({{{call_args}}});
+}
+"#;
+
+static TPL_VOID_MEMFN_MUT: &str = r#"
+extern "C" void {{name}}({{{cls}}} &self {{{decl_link_args}}}) noexcept {
+    void ({{{cls}}}::*__func)({{{decl_args}}}) = {{{fn}}};
+    (self.*__func)({{{call_args}}});
+}
+"#;
 
 static TPL_UNIQUE_PTR: &str = r#"
 extern "C" void {{name}}_delete({{{c_tp}}} &self) noexcept {
@@ -110,23 +130,60 @@ lazy_static! {
     static ref HANDLEBARS: Handlebars<'static> = {
 	let mut hb = Handlebars::new();
 	hb.set_strict_mode(true);
-	hb.register_template_string("tpl_ret_fn", TPL_RET_FN.trim_start()).unwrap();
-	hb.register_template_string("tpl_void_fn", TPL_VOID_FN.trim_start()).unwrap();
-	hb.register_template_string("tpl_unique_ptr", TPL_UNIQUE_PTR.trim_start()).unwrap();
-	hb.register_template_string("tpl_shared_ptr", TPL_SHARED_PTR.trim_start()).unwrap();
-	hb.register_template_string("tpl_weak_ptr", TPL_WEAK_PTR.trim_start()).unwrap();
-	hb.register_template_string("tpl_vector", TPL_VECTOR.trim_start()).unwrap();
+	for (k, v) in &[
+	    ("tpl_ret_object_fn", TPL_RET_OBJECT_FN),
+	    ("tpl_ret_atomic_fn", TPL_RET_ATOMIC_FN),
+	    ("tpl_void_fn", TPL_VOID_FN),
+	    ("tpl_ret_object_memfn", TPL_RET_OBJECT_MEMFN),
+	    ("tpl_ret_atomic_memfn", TPL_RET_ATOMIC_MEMFN),
+	    ("tpl_void_memfn", TPL_VOID_MEMFN),
+
+	    ("tpl_ret_object_memfn_mut", TPL_RET_OBJECT_MEMFN_MUT),
+	    ("tpl_ret_atomic_memfn_mut", TPL_RET_ATOMIC_MEMFN_MUT),
+	    ("tpl_void_memfn_mut", TPL_VOID_MEMFN_MUT),
+
+	    ("tpl_unique_ptr", TPL_UNIQUE_PTR),
+	    ("tpl_shared_ptr", TPL_SHARED_PTR),
+	    ("tpl_weak_ptr", TPL_WEAK_PTR),
+	    ("tpl_vector", TPL_VECTOR),
+	] {
+	    hb.register_template_string(k, v.trim_start()).unwrap();
+	}
+
 	hb
     };
 }
 
 #[derive(Default)]
-pub struct FnSig<'a, 'b> {
+pub enum ReturnType<'a> {
+    #[default]
+    None,
+    Object(&'a str),
+    Atomic(&'a str),
+}
+
+impl ReturnType<'_> {
+    pub fn is_none(&self) -> bool {
+	matches!(*self, Self::None)
+    }
+
+    pub fn is_object(&self) -> bool {
+	matches!(*self, Self::Object(_))
+    }
+
+    pub fn is_atomic(&self) -> bool {
+	matches!(*self, Self::Atomic(_))
+    }
+}
+
+#[derive(Default)]
+pub struct FnSig<'a> {
     pub cls: Option<&'a str>,
+    pub is_mut: bool,
     pub fn_name: &'a str,
 
-    pub ret_type: Option<&'a str>,
-    pub args: &'b [(&'a str, &'a str)],
+    pub ret_type: ReturnType<'a>,
+    pub args: &'a [(&'a str, &'a str)],
 }
 
 pub fn genc_fn(link_name: &str, fn_sig: FnSig) -> String {
@@ -140,41 +197,58 @@ pub fn genc_fn(link_name: &str, fn_sig: FnSig) -> String {
 
     let mut s_decl_link_args = s_decl_args.clone();
 
-    if fn_sig.ret_type.is_some() {
-	if !s_decl_link_args.is_empty() {
-	    s_decl_link_args += ",";
-	}
+    if fn_sig.ret_type.is_object() && !s_decl_link_args.is_empty() {
+	s_decl_link_args += ",";
     }
 
     match fn_sig.cls {
 	None => {
-	    match fn_sig.ret_type {
-		Some(ret_type) => {
-		    HANDLEBARS.render("tpl_ret_fn", &json!({
-			"name": link_name,
-			"fn": fn_sig.fn_name,
-			"ret_type": ret_type,
-			"decl_link_args": s_decl_link_args,
-			"decl_args": s_decl_args,
-			"call_args": s_call_args,
+	    let (ret_type, tpl_name) = match fn_sig.ret_type {
+		ReturnType::None => ("", "tpl_void_fn"),
+		ReturnType::Object(rt) => (rt, "tpl_ret_object_fn"),
+		ReturnType::Atomic(rt) => (rt, "tpl_ret_atomic_fn"),
+	    };
 
-		    })).unwrap()
-		},
-		None => {
-		    HANDLEBARS.render("tpl_void_fn", &json!({
-			"name": link_name,
-			"fn": fn_sig.fn_name,
-			"decl_link_args": s_decl_link_args,
-			"decl_args": s_decl_args,
-			"call_args": s_call_args,
+	    HANDLEBARS.render(tpl_name, &json!({
+		"name": link_name,
+		"fn": fn_sig.fn_name,
+		"ret_type": ret_type,
+		"decl_link_args": s_decl_link_args,
+		"decl_args": s_decl_args,
+		"call_args": s_call_args,
 
-		    })).unwrap()
-		}
-	    }
+	    })).unwrap()
 	},
 
 	Some(cls) => {
-	    String::new()
+	    let (ret_type, tpl_name) = match (fn_sig.ret_type, fn_sig.is_mut) {
+		(ReturnType::None, false) => ("", "tpl_void_memfn"),
+		(ReturnType::None, true) => ("", "tpl_void_memfn_mut"),
+		(ReturnType::Object(rt), false) => (rt, "tpl_ret_object_memfn"),
+		(ReturnType::Object(rt), true) => (rt, "tpl_ret_object_memfn_mut"),
+		(ReturnType::Atomic(rt), false) => (rt, "tpl_ret_atomic_memfn"),
+		(ReturnType::Atomic(rt), true) => (rt, "tpl_ret_atomic_memfn_mut"),
+	    };
+
+	    let fn_name = fn_sig.fn_name.replace("$C", cls);
+	    let ret_type = ret_type.replace("$C", cls);
+	    let mut s_decl_link_args = s_decl_link_args.replace("$C", cls);
+	    if !s_decl_link_args.is_empty() {
+		s_decl_link_args = format!(", {}", s_decl_link_args);
+	    }
+	    let s_decl_args = s_decl_args.replace("$C", cls);
+	    let s_call_args = s_call_args.replace("$C", cls);
+
+	    HANDLEBARS.render(tpl_name, &json!({
+		"cls": cls,
+		"name": link_name,
+		"fn": fn_name,
+		"ret_type": ret_type,
+		"decl_link_args": s_decl_link_args,
+		"decl_args": s_decl_args,
+		"call_args": s_call_args,
+
+	    })).unwrap()
 	}
     }
 }
@@ -217,7 +291,7 @@ mod tests {
     fn test_fn() {
 	let s=  genc_fn("MapMut_Matrix3d_new", FnSig {
 	    fn_name: "MapMut_fixed_new<Matrix3d, double>",
-	    ret_type: Some("Eigen::Map<Matrix3d>"),
+	    ret_type: ReturnType::Object("Eigen::Map<Matrix3d>"),
 	    args: &[
 		("double *", "data"),
 	    ],
@@ -227,7 +301,7 @@ mod tests {
 	assert_eq!(s, r#"
 extern "C" void MapMut_Matrix3d_new(double * data, Eigen::Map<Matrix3d> *__ret) noexcept {
     Eigen::Map<Matrix3d> (*__func)(double * data) = MapMut_fixed_new<Matrix3d, double>;
-    new (__ret) Eigen::Map<Matrix3d>(__func(data));
+    new (__ret) (Eigen::Map<Matrix3d>)(__func(data));
 }
 "#.trim_start());
 

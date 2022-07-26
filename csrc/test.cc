@@ -24,6 +24,10 @@ void dummy_cpp_getvoid_vector_i64(std::vector<int64_t>const& v, int a) {
   a += v[0];
 }
 
+int64_t const & dummy_cpp_getref_vector_i64(std::vector<int64_t> const &v, int idx) {
+  return v[idx];
+}
+
 extern "C" {
 
 void rxx_dummy_new_unique_i64(int64_t v, std::unique_ptr<int64_t> *out) {

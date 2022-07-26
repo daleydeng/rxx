@@ -79,7 +79,7 @@ fn main() -> Result<()>
 	    &[
 		&genc_fn("rxx_dummy_cpp_new_vector_i64", FnSig {
 		    fn_name: "dummy_cpp_new_vector_i64",
-		    ret_type: Some("std::vector<int64_t>"),
+		    ret_type: ReturnType::Object("std::vector<int64_t>"),
 		    args: &[("int", "a")],
 		    ..FnSig::default()
 		}),
@@ -95,7 +95,7 @@ fn main() -> Result<()>
 
 		&genc_fn("rxx_dummy_cpp_addret_vector_i64", FnSig {
 		    fn_name: "dummy_cpp_addret_vector_i64",
-		    ret_type: Some("int64_t"),
+		    ret_type: ReturnType::Atomic("int64_t"),
 		    args: &[
 			("std::vector<int64_t>&", "val"),
 			("int", "n"),
@@ -105,7 +105,7 @@ fn main() -> Result<()>
 
 		&genc_fn("rxx_dummy_cpp_get_vector_i64", FnSig {
 		    fn_name: "dummy_cpp_get_vector_i64",
-		    ret_type: Some("int64_t"),
+		    ret_type: ReturnType::Object("int64_t"),
 		    args: &[
 			("std::vector<int64_t>const&", "val"),
 		    ],
@@ -121,10 +121,51 @@ fn main() -> Result<()>
 		    ..FnSig::default()
 		}),
 
+		&genc_fn("rxx_dummy_cpp_getref_vector_i64", FnSig {
+		    fn_name: "dummy_cpp_getref_vector_i64",
+		    ret_type: ReturnType::Atomic("int64_t const &"),
+		    args: &[
+			("std::vector<int64_t>const&", "val"),
+			("int", "idx"),
+		    ],
+		    ..FnSig::default()
+		}),
+
 		&genc_unique_ptr("rxx_unique_i64", "std::unique_ptr<int64_t>"),
 		&genc_shared_ptr("rxx_shared_i64", "std::shared_ptr<int64_t>"),
 		&genc_weak_ptr("rxx_weak_i64", "std::weak_ptr<int64_t>", "std::shared_ptr<int64_t>"),
 		&genc_vector("rxx_vector_i64", "std::vector<int64_t>", "int64_t"),
+
+		&genc_fn("rxx_Dummy_get", FnSig{
+		    cls: Some("Dummy"),
+		    fn_name: "&$C::get",
+		    ret_type: ReturnType::Atomic("int64_t"),
+		    args: &[
+			("size_t", "idx"),
+		    ],
+		    ..FnSig::default()
+		}),
+
+		&genc_fn("rxx_Dummy_get_mut", FnSig{
+		    cls: Some("Dummy"),
+		    fn_name: "&$C::get_mut",
+		    is_mut: true,
+		    ret_type: ReturnType::Atomic("int64_t&"),
+		    args: &[
+			("size_t", "idx"),
+		    ],
+		}),
+
+		&genc_fn("rxx_Dummy_add", FnSig{
+		    cls: Some("Dummy"),
+		    fn_name: "&$C::add",
+		    is_mut: true,
+		    args: &[
+			("int64_t", "val"),
+		    ],
+		    ..FnSig::default()
+		}),
+
 	    ]
 	).as_bytes())?;
 
