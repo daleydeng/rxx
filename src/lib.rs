@@ -49,7 +49,7 @@ mod tests {
 
     fn new_unique_i64(v: i64) -> UniquePtr<i64> {
         extern "C" {
-	    #[link_name="rxx_dummy_new_unique_i64"]
+            #[link_name = "rxx_dummy_new_unique_i64"]
             fn __func(val: i64, out: *mut c_void);
         }
 
@@ -62,7 +62,7 @@ mod tests {
 
     fn new_shared_i64(v: i64) -> SharedPtr<i64> {
         extern "C" {
-	    #[link_name="rxx_dummy_new_shared_i64"]
+            #[link_name = "rxx_dummy_new_shared_i64"]
             fn __func(val: i64, obj: *mut c_void);
         }
 
@@ -75,7 +75,7 @@ mod tests {
 
     fn new_vector_i64(data: &[i64]) -> CxxVector<i64> {
         extern "C" {
-	    #[link_name="rxx_dummy_new_vector_i64"]
+            #[link_name = "rxx_dummy_new_vector_i64"]
             fn __func(data: *const i64, len: usize, out: *mut CxxVector<i64>);
         }
 
@@ -88,7 +88,7 @@ mod tests {
 
     fn new_unique_string() -> UniquePtr<CxxString> {
         extern "C" {
-	    #[link_name="rxx_dummy_new_unique_string"]
+            #[link_name = "rxx_dummy_new_unique_string"]
             fn __func(out: *mut UniquePtr<CxxString>);
         }
         let mut out = MaybeUninit::<UniquePtr<CxxString>>::uninit();
@@ -100,7 +100,7 @@ mod tests {
 
     fn new_shared_ptr_string() -> SharedPtr<CxxString> {
         extern "C" {
-	    #[link_name="rxx_dummy_new_shared_string"]
+            #[link_name = "rxx_dummy_new_shared_string"]
             fn __func(out: *mut SharedPtr<CxxString>);
         }
         let mut out = MaybeUninit::<SharedPtr<CxxString>>::uninit();
@@ -112,9 +112,9 @@ mod tests {
 
     #[repr(C)]
     struct Dummy<'a> {
-	data: *mut i64,
-	len: usize,
-	_ty: PhantomData<&'a i64>,
+        data: *mut i64,
+        len: usize,
+        _ty: PhantomData<&'a i64>,
     }
 
     genrs_fn!(pub fn Dummy<'_> | get(&self, idx: usize) -> i64, cret=atomic, ln=rxx_Dummy_get);
@@ -123,54 +123,53 @@ mod tests {
 
     #[test]
     fn test_cpp_fn() {
-	let mut a = rxx_dummy_cpp_new_vector_i64(123);
-	assert_eq!(a[0], 123);
+        let mut a = rxx_dummy_cpp_new_vector_i64(123);
+        assert_eq!(a[0], 123);
 
-	rxx_dummy_cpp_add_vector_i64(&mut a, 1);
-	assert_eq!(a[0], 124);
+        rxx_dummy_cpp_add_vector_i64(&mut a, 1);
+        assert_eq!(a[0], 124);
 
-	let b = rxx_dummy_cpp_addret_vector_i64(&mut a, 20);
-	assert_eq!(b, 144);
+        let b = rxx_dummy_cpp_addret_vector_i64(&mut a, 20);
+        assert_eq!(b, 144);
 
-	let c = rxx_dummy_cpp_get_vector_i64(&a);
-	assert_eq!(c, 144);
+        let c = rxx_dummy_cpp_get_vector_i64(&a);
+        assert_eq!(c, 144);
 
-	rxx_dummy_cpp_getvoid_vector_i64(&a, 10);
+        rxx_dummy_cpp_getvoid_vector_i64(&a, 10);
 
-	a.add(20);
-	assert_eq!(a[0], 164);
+        a.add(20);
+        assert_eq!(a[0], 164);
 
-	assert_eq!(a.addret(20), 184);
-	assert_eq!(a.get1(), 184);
-	a.getvoid(10);
+        assert_eq!(a.addret(20), 184);
+        assert_eq!(a.get1(), 184);
+        a.getvoid(10);
 
-	let b = rxx_dummy_cpp_getref_vector_i64(&a, 0);
-	assert_eq!(*b, 184);
+        let b = rxx_dummy_cpp_getref_vector_i64(&a, 0);
+        assert_eq!(*b, 184);
 
-	let b = a.getref(0);
-	assert_eq!(*b, 184);
-
+        let b = a.getref(0);
+        assert_eq!(*b, 184);
     }
 
     #[test]
     fn test_cpp_cls() {
-	let mut buf  = [1i64, 2, 3, 4];
-	let a = Dummy {
-	    data: buf.as_mut_ptr(),
-	    len: buf.len(),
-	    _ty: PhantomData,
-	};
+        let mut buf = [1i64, 2, 3, 4];
+        let a = Dummy {
+            data: buf.as_mut_ptr(),
+            len: buf.len(),
+            _ty: PhantomData,
+        };
 
-	assert_eq!(a.get(0), 1);
-	assert_eq!(a.get(2), 3);
+        assert_eq!(a.get(0), 1);
+        assert_eq!(a.get(2), 3);
 
-	let mut b = a;
-	let i = b.get_mut(0);
-	*i = 8;
-	assert_eq!(b.get(0), 8);
+        let mut b = a;
+        let i = b.get_mut(0);
+        *i = 8;
+        assert_eq!(b.get(0), 8);
 
-	b.add(3);
-	assert_eq!(b.get(0), 11);
+        b.add(3);
+        assert_eq!(b.get(0), 11);
     }
 
     #[test]
