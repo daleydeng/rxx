@@ -1,3 +1,3 @@
 # rxx
 
-C++ rust bridge
+C++ rust bridge inspired by cxx crate
