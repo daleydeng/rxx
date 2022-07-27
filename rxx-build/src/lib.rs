@@ -5,63 +5,63 @@ use serde_json::json;
 
 static TPL_RET_OBJECT_FN: &str = r#"
 extern "C" void {{name}}({{{decl_link_args}}}{{{ret_type}}} *__ret) noexcept {
-    {{{ret_type}}} (*__func)({{{decl_args}}}) = {{{fn}}};
+    {{{ret_type}}} (*__func)({{{decl_args}}}) = {{{c_fn}}};
     new (__ret) ({{{ret_type}}})(__func({{{call_args}}}));
 }
 "#;
 
 static TPL_RET_ATOMIC_FN: &str = r#"
 extern "C" {{{ret_type}}} {{name}}({{{decl_link_args}}}) noexcept {
-    {{{ret_type}}} (*__func)({{{decl_args}}}) = {{{fn}}};
+    {{{ret_type}}} (*__func)({{{decl_args}}}) = {{{c_fn}}};
     return __func({{{call_args}}});
 }
 "#;
 
 static TPL_VOID_FN: &str = r#"
 extern "C" void {{name}}({{{decl_link_args}}}) noexcept {
-    void (*__func)({{{decl_args}}}) = {{{fn}}};
+    void (*__func)({{{decl_args}}}) = {{{c_fn}}};
     __func({{{call_args}}});
 }
 "#;
 
 static TPL_RET_OBJECT_MEMFN: &str = r#"
 extern "C" void {{name}}({{{cls}}} const &self{{{decl_link_args}}}{{{ret_type}}} *__ret) noexcept {
-    {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{fn}}};
+    {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{c_fn}}};
     new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
 }
 "#;
 
 static TPL_RET_ATOMIC_MEMFN: &str = r#"
 extern "C" {{{ret_type}}} {{name}}({{{cls}}} const &self{{{decl_link_args}}}) noexcept {
-    {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{fn}}};
+    {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{c_fn}}};
     return (self.*__func)({{{call_args}}});
 }
 "#;
 
 static TPL_VOID_MEMFN: &str = r#"
 extern "C" void {{name}}({{{cls}}} const &self{{{decl_link_args}}}) noexcept {
-    void ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{fn}}};
+    void ({{{cls}}}::*__func)({{{decl_args}}}) const = {{{c_fn}}};
     (self.*__func)({{{call_args}}});
 }
 "#;
 
 static TPL_RET_OBJECT_MEMFN_MUT: &str = r#"
 extern "C" void {{name}}({{{cls}}} &self{{{decl_link_args}}}{{{ret_type}}} *__ret) noexcept {
-    {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) = {{{fn}}};
+    {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) = {{{c_fn}}};
     new (__ret) {{{ret_type}}}((self.*__func)({{{call_args}}}));
 }
 "#;
 
 static TPL_RET_ATOMIC_MEMFN_MUT: &str = r#"
 extern "C" {{{ret_type}}} {{name}}({{{cls}}} &self{{{decl_link_args}}}) noexcept {
-    {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) = {{{fn}}};
+    {{{ret_type}}} ({{{cls}}}::*__func)({{{decl_args}}}) = {{{c_fn}}};
     return (self.*__func)({{{call_args}}});
 }
 "#;
 
 static TPL_VOID_MEMFN_MUT: &str = r#"
 extern "C" void {{name}}({{{cls}}} &self{{{decl_link_args}}}) noexcept {
-    void ({{{cls}}}::*__func)({{{decl_args}}}) = {{{fn}}};
+    void ({{{cls}}}::*__func)({{{decl_args}}}) = {{{c_fn}}};
     (self.*__func)({{{call_args}}});
 }
 "#;
@@ -178,7 +178,7 @@ impl ReturnType<'_> {
 pub struct FnSig<'a> {
     pub cls: Option<&'a str>,
     pub is_mut: bool,
-    pub fn_name: &'a str,
+    pub c_fn: &'a str,
 
     pub ret_type: ReturnType<'a>,
     pub args: &'a [(&'a str, &'a str)],
@@ -190,14 +190,14 @@ pub fn genc_fn(link_name: &str, fn_sig: FnSig) -> String {
         .iter()
         .map(|(tp, val)| format!("{tp} {val}"))
         .collect::<Vec<_>>()
-        .join(",");
+        .join(", ");
 
     let s_call_args = fn_sig
         .args
         .iter()
         .map(|(_, val)| val.to_string())
         .collect::<Vec<_>>()
-        .join(",");
+        .join(", ");
 
     let mut s_decl_link_args = s_decl_args.clone();
 
@@ -205,14 +205,14 @@ pub fn genc_fn(link_name: &str, fn_sig: FnSig) -> String {
         if fn_sig.ret_type.is_object() {
             s_decl_link_args += ", ";
         }
-		if fn_sig.cls.is_some() {
-			s_decl_link_args.insert_str(0, ", ");
-		}
+        if fn_sig.cls.is_some() {
+            s_decl_link_args.insert_str(0, ", ");
+        }
     } else {
-		if fn_sig.ret_type.is_object() && fn_sig.cls.is_some() {
-			s_decl_link_args = ", ".to_string();
-		}
-	}
+        if fn_sig.ret_type.is_object() && fn_sig.cls.is_some() {
+            s_decl_link_args = ", ".to_string();
+        }
+    }
 
     match fn_sig.cls {
         None => {
@@ -227,7 +227,7 @@ pub fn genc_fn(link_name: &str, fn_sig: FnSig) -> String {
                     tpl_name,
                     &json!({
                     "name": link_name,
-                    "fn": fn_sig.fn_name,
+                    "c_fn": fn_sig.c_fn,
                     "ret_type": ret_type,
                     "decl_link_args": s_decl_link_args,
                     "decl_args": s_decl_args,
@@ -248,7 +248,7 @@ pub fn genc_fn(link_name: &str, fn_sig: FnSig) -> String {
                 (ReturnType::Atomic(rt), true) => (rt, "tpl_ret_atomic_memfn_mut"),
             };
 
-            let fn_name = fn_sig.fn_name.replace("$C", cls);
+            let fn_name = fn_sig.c_fn.replace("$C", cls);
             let ret_type = ret_type.replace("$C", cls);
             let s_decl_link_args = s_decl_link_args.replace("$C", cls);
             let s_decl_args = s_decl_args.replace("$C", cls);
@@ -260,7 +260,7 @@ pub fn genc_fn(link_name: &str, fn_sig: FnSig) -> String {
                     &json!({
                     "cls": cls,
                     "name": link_name,
-                    "fn": fn_name,
+                    "c_fn": fn_name,
                     "ret_type": ret_type,
                     "decl_link_args": s_decl_link_args,
                     "decl_args": s_decl_args,
@@ -332,7 +332,7 @@ mod tests {
         let s = genc_fn(
             "MapMut_Matrix3d_new",
             FnSig {
-                fn_name: "MapMut_fixed_new<Matrix3d, double>",
+                c_fn: "MapMut_fixed_new<Matrix3d, double>",
                 ret_type: ReturnType::Object("Eigen::Map<Matrix3d>"),
                 args: &[("double *", "data")],
                 ..FnSig::default()
@@ -353,7 +353,7 @@ extern "C" void MapMut_Matrix3d_new(double * data, Eigen::Map<Matrix3d> *__ret) 
         let s = genc_fn(
             "rxx_Matrix3d_print",
             FnSig {
-                fn_name: "Matrix3d_print",
+                c_fn: "Matrix3d_print",
                 args: &[("Matrix3d const &", "self")],
                 ..FnSig::default()
             },

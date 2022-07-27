@@ -83,7 +83,7 @@ fn main() -> Result<()> {
                 &genc_fn(
                     "rxx_dummy_cpp_new_vector_i64",
                     FnSig {
-                        fn_name: "dummy_cpp_new_vector_i64",
+                        c_fn: "dummy_cpp_new_vector_i64",
                         ret_type: ReturnType::Object("std::vector<int64_t>"),
                         args: &[("int", "a")],
                         ..FnSig::default()
@@ -92,7 +92,7 @@ fn main() -> Result<()> {
                 &genc_fn(
                     "rxx_dummy_cpp_add_vector_i64",
                     FnSig {
-                        fn_name: "dummy_cpp_add_vector_i64",
+                        c_fn: "dummy_cpp_add_vector_i64",
                         args: &[("std::vector<int64_t>&", "val"), ("int", "n")],
                         ..FnSig::default()
                     },
@@ -100,7 +100,7 @@ fn main() -> Result<()> {
                 &genc_fn(
                     "rxx_dummy_cpp_addret_vector_i64",
                     FnSig {
-                        fn_name: "dummy_cpp_addret_vector_i64",
+                        c_fn: "dummy_cpp_addret_vector_i64",
                         ret_type: ReturnType::Atomic("int64_t"),
                         args: &[("std::vector<int64_t>&", "val"), ("int", "n")],
                         ..FnSig::default()
@@ -109,7 +109,7 @@ fn main() -> Result<()> {
                 &genc_fn(
                     "rxx_dummy_cpp_get_vector_i64",
                     FnSig {
-                        fn_name: "dummy_cpp_get_vector_i64",
+                        c_fn: "dummy_cpp_get_vector_i64",
                         ret_type: ReturnType::Object("int64_t"),
                         args: &[("std::vector<int64_t>const&", "val")],
                         ..FnSig::default()
@@ -118,7 +118,7 @@ fn main() -> Result<()> {
                 &genc_fn(
                     "rxx_dummy_cpp_getvoid_vector_i64",
                     FnSig {
-                        fn_name: "dummy_cpp_getvoid_vector_i64",
+                        c_fn: "dummy_cpp_getvoid_vector_i64",
                         args: &[("std::vector<int64_t>const&", "val"), ("int", "a")],
                         ..FnSig::default()
                     },
@@ -126,7 +126,7 @@ fn main() -> Result<()> {
                 &genc_fn(
                     "rxx_dummy_cpp_getref_vector_i64",
                     FnSig {
-                        fn_name: "dummy_cpp_getref_vector_i64",
+                        c_fn: "dummy_cpp_getref_vector_i64",
                         ret_type: ReturnType::Atomic("int64_t const &"),
                         args: &[("std::vector<int64_t>const&", "val"), ("int", "idx")],
                         ..FnSig::default()
@@ -144,7 +144,7 @@ fn main() -> Result<()> {
                     "rxx_Dummy_get",
                     FnSig {
                         cls: Some("Dummy"),
-                        fn_name: "&$C::get",
+                        c_fn: "&$C::get",
                         ret_type: ReturnType::Atomic("int64_t"),
                         args: &[("size_t", "idx")],
                         ..FnSig::default()
@@ -154,7 +154,7 @@ fn main() -> Result<()> {
                     "rxx_Dummy_get_mut",
                     FnSig {
                         cls: Some("Dummy"),
-                        fn_name: "&$C::get_mut",
+                        c_fn: "&$C::get_mut",
                         is_mut: true,
                         ret_type: ReturnType::Atomic("int64_t&"),
                         args: &[("size_t", "idx")],
@@ -164,7 +164,7 @@ fn main() -> Result<()> {
                     "rxx_Dummy_add",
                     FnSig {
                         cls: Some("Dummy"),
-                        fn_name: "&$C::add",
+                        c_fn: "&$C::add",
                         is_mut: true,
                         args: &[("int64_t", "val")],
                         ..FnSig::default()

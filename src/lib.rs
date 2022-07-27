@@ -36,11 +36,11 @@ mod tests {
     genrs_fn!(pub fn rxx_dummy_cpp_getvoid_vector_i64(a: &CxxVector<i64>, i: i32));
     genrs_fn!(pub fn rxx_dummy_cpp_getref_vector_i64<'a>(a: &'a CxxVector<i64>, i: i32) -> &'a i64, cret=atomic);
 
-    genrs_fn!(pub fn CxxVector<i64> | add(&mut self, a: i32), ln=rxx_dummy_cpp_add_vector_i64);
-    genrs_fn!(pub fn CxxVector<i64> | addret(&mut self, a: i32) -> i64, cret=atomic, ln=rxx_dummy_cpp_addret_vector_i64);
-    genrs_fn!(pub fn CxxVector<i64> | get1(&self) -> i64, ln=rxx_dummy_cpp_get_vector_i64);
-    genrs_fn!(pub fn CxxVector<i64> | getvoid(&self, a: i32), ln=rxx_dummy_cpp_getvoid_vector_i64);
-    genrs_fn!(pub fn CxxVector<i64> | getref(&self, a: i32) -> &i64, cret=atomic, ln=rxx_dummy_cpp_getref_vector_i64);
+    genrs_fn!(CxxVector<i64>;; pub fn add(&mut self, a: i32), ln=rxx_dummy_cpp_add_vector_i64);
+    genrs_fn!(CxxVector<i64>;; pub fn addret(&mut self, a: i32) -> i64, cret=atomic, ln=rxx_dummy_cpp_addret_vector_i64);
+    genrs_fn!(CxxVector<i64>;; pub fn get1(&self) -> i64, ln=rxx_dummy_cpp_get_vector_i64);
+    genrs_fn!(CxxVector<i64>;; pub fn getvoid(&self, a: i32), ln=rxx_dummy_cpp_getvoid_vector_i64);
+    genrs_fn!(CxxVector<i64>;; pub fn getref(&self, a: i32) -> &i64, cret=atomic, ln=rxx_dummy_cpp_getref_vector_i64);
 
     genrs_unique_ptr!(rxx_unique_i64, i64);
     genrs_shared_ptr!(rxx_shared_i64, i64);
@@ -117,9 +117,9 @@ mod tests {
         _ty: PhantomData<&'a i64>,
     }
 
-    genrs_fn!(pub fn Dummy<'_> | get(&self, idx: usize) -> i64, cret=atomic, ln=rxx_Dummy_get);
-    genrs_fn!(pub fn Dummy<'_> | get_mut(&mut self, idx: usize) -> &'this mut i64, cret=atomic, ln=rxx_Dummy_get_mut);
-    genrs_fn!(pub fn Dummy<'_> | add(&mut self, val: i64), ln=rxx_Dummy_add);
+    genrs_fn!(Dummy<'_>;; pub fn get(&self, idx: usize) -> i64, cret=atomic, ln=rxx_Dummy_get);
+    genrs_fn!(Dummy<'a>; impl<'a>; pub fn get_mut(&mut self, idx: usize) -> &'a mut i64, cret=atomic, ln=rxx_Dummy_get_mut);
+    genrs_fn!(Dummy<'_>;; pub fn add(&mut self, val: i64), ln=rxx_Dummy_add);
 
     #[test]
     fn test_cpp_fn() {
